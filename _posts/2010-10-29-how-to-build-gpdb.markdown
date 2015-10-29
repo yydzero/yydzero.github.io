@@ -38,7 +38,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 安装了二进制文件后，需要初始化数据库集群。下面在一台笔记本上安装一个GPDB的集群。集群包括一个master，两个segment。
 
     $ source $HOME/gpdb.master/greenplum_path.sh
-    $ gpssh-exkeys -h hostname
+    $ gpssh-exkeys -h `hostname`
 
 #### 4.1 生成三个配置文件
 
@@ -88,3 +88,10 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     ---------------+---------
             0      |  501
             1      |  499
+
+### 6. 可能问题
+
+* 如果你的系统上已经安装了 PostgreSQL，有可能会有冲突。还没来得及看问题原因
+* GPDB github 主页上有怎么样初始化 demo cluster 的步骤，不过这个步骤假定安装 3 个primary，3 个mirror，一般笔记本上吃不消。
+如果机器够强大，使用 demo cluster 更简单些。
+* 如果有什么问题，欢迎使用 GPDB 的邮件列表报告bug： greenplum.org
