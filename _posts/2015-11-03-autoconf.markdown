@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "autoconf"
+title:  "Autoconf"
+author: 姚延栋
 date:   2015-11-03 17:14:00
 categories: autoconf libtool
 ---
@@ -101,7 +102,277 @@ autoconf 没有自定义自己的宏语言，而是使用了一个通用的宏�
 
 Autoconf 语言和大多数计算机语言不同，读起来像自然语言。
 
-首先需要区分literal strings和宏: 
+首先需要区分literal strings和宏: 使用转义字符(quotation).
+
+调用宏的时候需要使用括号，而且宏名字和括号之间不能有空格：`AC_INIT([hello], [1.0])`
+
+参数使用转义字符'[', ']'括起来。如果参数包含宏名字、逗号、括号、空格或者换行，则必须使用转义字符。
+
+    AC_CHECK_HEADER([stdio.h],
+                    [AC_DEFINE([HAVE_STDIO_H], [1],
+                    [Define to 1 if you have <stdio.h>.])],
+                    [AC_MSG_ERROR([sorry, can’t do anything for you])])
+
+可以写成：
+    AC_CHECK_HEADER(stdio.h,
+                    AC_DEFINE(HAVE_STDIO_H, 1,
+                    Define to 1 if you have <stdio.h>.),
+                    AC_MSG_ERROR([sorry, can’t do anything for you]))
+
+
+##### 3.1.3 标准的 configure.ac 布局
+
+    Autoconf requirements
+    AC_INIT(package, version, bug-report-address)
+    information on the package
+    checks for programs
+    checks for libraries
+    checks for header files
+    checks for types
+    checks for structures
+    checks for compiler characteristics
+    checks for library functions
+    checks for system services
+    AC_CONFIG_FILES([file...])
+    AC_OUTPUT
+
+#### 3.2 使用 autoscan 创建 configure.ac
+
+autoscan 可以帮助生成 configure.ac，它会扫描目录下得文件，并根据常见的可移植性问题，创建 configure.scan。 根据这个文件可以生成
+configure.ac.  有时候需要做某些修改。 autoscan.log 包含了问什么需要某个宏的详细信息。
+
+
+#### 3.3 使用 ifnames 列出条件
+
+ifnames 扫描参数C文件，并打印出 C 预处理器会处理的条件.
+
+#### 3.4 使用 autoconf 创建 configure
+
+autoconf 扫描 configure.ac 文件，使用 M4 宏处理器处理其中的autoconf宏，并生成 configure 文件。
+
+Autoconf 宏定义通常在单独的文件中。Autoconf 自身包含了常用的宏定义，autoconf 会首先读入自定义的宏。然后查找一个 'acsite.m4' 文件和
+当前目录下得 aclocal.m4 文件。
+
+### 4 初始化和输出文件
+
+#### 4.1 初始化 configure
+
+configure 需要首先调用 AC_INIT 进行初始化。
+
+    AC_INIT(package, version, [bug-report], [tarname], [url])
+    处理命令行参数，执行初始化和验证。
+
+    设置package的名字和版本。
+
+AC_INIT 定义下面的 M4 宏：
+
+* AC_PACKAGE_NAME,PACKAGE_NAME
+* AC_PACKAGE_TARNAME, PACKAGE_TARNAME
+* AC_PACKAGE_VERSION, PACKAGE_VERSION
+* AC_PACKAGE_STRING, PACKAGE_STRING
+* AC_PACKAGE_BUGREPORT, PACKAGE_BUGREPORT
+* AC_PACKAGE_URL, PACKAGE_URL
+
+#### 4.2 设定 Autoconf 版本
+
+    AC_PREREQ(version)：需求的 autoconf 的版本
+
+    AC_AUTOCONF_VERSION
+
+#### 4.3 输出文件
+
+    AC_OUTPUT： 生成 config.status 并执行它。
+
+    config.status 执行所有的配置操作：所有的输出文件(AC_CONFIG_FILES), 头文件（AC_CONFIG_HEADERS), 命令（AC_CONFIG_COMMANDS)，
+    链接（AC_CONFIG_LINKS)，子目录（AC_CONFIG_SUBDIRS)
+
+    AC_PROG_MAKE_SET
+
+#### 4.4 执行配置操作
+
+看起来 configure 做了所有的事情，实际上它主要使用了 config.status。 configure 主要负责检测系统特性，而 config.status 负责根据
+configure 检测的结果生成各种文件 （instantiate files）。
+
+有四种主要的标准 instantiating 宏：
+
+* AC_CONFIG_FILES
+* AC_CONFIG_HEADERS
+* AC_CONFIG_COMMANDS
+* AC_CONFIG_LINKS
+
+原型为：
+
+    AC_CONFIG_ITEMS(tag..., [commands], [init-cmds])
+
+    tag: 空格或者换行分割的 tags，通常是要创建的文件的名字。
+
+        AC_CONFIG_FILES，AC_CONFIG_HEADERS 可以使用类似 output:inputs:inputs 这样的tag，表示根据输入模板生成输出。
+        缺省的输入模板是 output.in
+
+    commands: 直接写入到 config.status 的shell命令。
+
+
+#### 4.5 创建配置文件
+
+    AC_CONFIG_FILES(file..., [cmds], [init-cmds])
+
+    告诉 AC_OUTPUT 通过拷贝输入文件（默认是file.in) ，替换输出变量而创建每个 file。
+    通常用来创建 Makefile。也能创建其他文件，例如 .gdbinit
+
+    AC_CONFIG_FILES([Makefile src/Makefile man/Makefile X/Imakefile])
+    AC_CONFIG_FILES([autoconf], [chmod +x autoconf])
+
+#### 4.6 Makefile 中的变量替换
+
+源代码路径下，每个需要执行编译操作的子目录都要有一个 Makefile.in 的文件， configure 根据这个文件创建 Makefile.
+
+configure 从 Makefile.in 创建 Makefile 的主要操作时变量替换：即替换 Makefile.in 中类似 @variable@ 的变量。
+这种变量称为 output variables。 通常它是 configure 中设置的 shell 脚本。
+
+需要使用 AC_SUBST 告诉 configure 某个shell变量可以进行替换。
+
+##### 4.6.1 预定义的输出变量
+
+某些输出变量是由 Autoconf 宏预先定义好的。 这些预定义的变量可以在 config.status 中直接使用，也可以用于 configure 测试。
+
+    CFLAGS： C 编译器参数。 如果环境变量没有设置，调用 AC_PROG_CC 时使用缺省值。
+
+    configure_input:
+
+    CPPFLAGS: 预处理器选项
+    CXXFLAGS: C++ 编译器选项
+
+    DEFS：传递给 C 编译器的 -D 选项。如果调用 AC_CONFIG_HEADERS ，则 configure 使用 -DHAVE_CONFIG_H 替换 @DEFS@
+
+    ECHO_C, ECHO_N, ECHO_T:
+
+    LDFLAGS: linker 的选项,紧使用 -s 或者 -L 这样影响linker行为的选项。 不要使用这个变量传递库名字（-l），使用 LIBS。
+    LIBS：linker的 -l 选项。
+
+    builddir: 通常为 .
+    abs_builddir: builddir的绝对路径
+    top_builddir： 编译链中的 toplevel 路径
+
+    srcdir: 包含Makefile处理的源代码的目录. Makefile 可能和 srcdir 不是同一个目录。特别是分开编译的时候。
+    top_srcdir: 顶级源代码目录.
+
+##### 4.6.2 安装目录相关的变量
+
+这些变量仅仅在 makefile 中使用。
+
+    bindir
+    datadir
+    datarootdir
+    docdir
+    dvidir
+    exec_prefix
+    htmldir
+    includedir
+    infodir
+    libdir
+    libexecdir
+    localedir
+    prefix
+    sbindir
+    sharestatedir
+    sysconfdir
+
+
+##### 4.6.3 编译目录
+
+autoconf支持同时编译多个平台，并使用不同的目录保存不同平台的 object 文件。 也就是说源代码和 object 文件可以在不同的目录中。
+make 通过使用 VPATH 实现。
+
+##### 4.6.4 自动 remaking
+
+#### 4.7 配置头文件
+
+如果需要多个 c 预处理器宏，使用编译器 -D 选项会变得很长。 造成2个问题：1）make的输出难以辨认错误；2）更严重的是可能超过OS的行长度限制
+。另一个办法是创建一个包含 #define 指令的 C 头文件。 AC_CONFIG_HEADERS 用于此目的.
+
+源代码需要使用 #include 包含配置头文件，并且在其他头文件之前，以防止声明的不一致。
+
+如果使用 VPATH，则需要设定 -I. 编译选项，因为默认c预处理器仅仅搜索源代码目录而不会搜索 build 目录。（VPATH的时候 config.h 生成在
+build 目录下）。
+
+    AC_CONFIG_HEADERS(header..., [cmds], [init-cmds])
+
+    AH_HEADER
+
+##### 4.7.1 配置头文件模板
+
+需要模板文件生成 config.h. 模板文件通常包含注释、#undef语句。例如 configure.ac 包含下面调用：
+
+    AC_CONFIG_HEADERS([conf.h])
+    AC_CHECK_HEADERS([unistd.h])
+
+则 conf.h.in 需要含有下面代码：
+
+    /* Define as 1 if you have unistd.h */
+    #undef HAVE_UNISTD_H
+
+AC_DEFINE 修改 #undef 为适当的 #define。
+
+##### 4.7.2 使用 autoheader 创建 config.h.in
+
+使用 autoheader 可以简化头文件模块的维护。 autoheader 搜索 configure 中的第一次调用 AC_CONFIG_HEADERS，并使用其第一个文件
+作为生成的头文件名。
+
+#### 4.8 运行任意配置命令
+
+可以在运行 config.status 之前、之中和之后运行任意命令。
+
+    AC_CONFIG_COMMANDS(tag..., [cmds], [init-cmds])
+
+    在 config.status 结束后运行的额外命令。通常 cmds 会创建文件，所以 tag 通常是文件的名字。
+
+#### 4.9 创建配置连接
+
+    AC_CONFIG_LINKS(dest:source..., [cmds], [init-cmds])
+
+    创建 AC_OUTPUT 符号链接. dest 和 source 名字相对于 top level 源代码路径或者编译路径.
+
+例子：
+
+    AC_CONFIG_LINKS([host.h:config/$machine.h
+                     object.h:config/$obj_format.h])
+
+    在当前目录下创建 host.h -> srcdir/config/$machine.h
+
+#### 4.10 子目录
+
+通常 AC_OUTPUT 可以处理子目录 makefile 的生成，如果 configure 脚本需要控制多个独立的package，则可以使用 CONFIG_SUBDIRS.
+
+#### 4.11 缺省的 prefix
+
+缺省的prefix 是 /usr/local. 可以使用 AC_PREFIX_DEFAULT 宏设置缺省的 prefix
+
+    AC_PREFIX_DEFAULT(/usr/local/pgsql)
+
+### 5 Autoconf 自带的测试宏
+
+#### 5.1 通用行为
+
+符号转换：
+
+* 首先参数转换成全部大写
+* ‘*’ 转换成字母 ‘P'
+* 所有其他非字母数字字符转换成下划线，包括空格.
+
+    AC_CHECK_TYPES([struct $Expensive*])
+
+    如果检查成功，则定义符号：HAVE_STRUCT__EXPENSIVEP
+
+
+缺省include
+
+    AC_INCLUDES_DEFAULT([include-directives])
+
+#### 5.2 可用工具程序
+
+这些宏检查某个工具是否存在或者是否支持特定的行为。
+
+    AC_PROG_AWK
 
 
  未完待续
