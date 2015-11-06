@@ -1,0 +1,107 @@
+---
+layout: post
+title:  "autoconf"
+date:   2015-11-03 17:14:00
+categories: autoconf libtool
+---
+
+很久前就接触 autoconf、automake 等，然而一直没有静下心来看看怎么使用他们，特别是 autoconf。
+希望通过这个阅读autoconf文档的笔记能把它们用起来。
+
+### 1. 介绍
+
+Autoconf is a tool for producing shell scripts that automatically configure software
+source code packageto adapt to many kinds of POSIX-like systems. The primary goal of
+Autoconf is making the user's life easier; making the maintainer's life easier is only
+a secondary goal. 换句话说就是 autoconf 的目的不是更容易生成 configure 脚本，而是使生成的 configure
+脚本更易用、更可移植。
+
+### 2. GNU 编译系统
+
+#### 2.1 Automake
+
+make 的主要限制包括缺少自动依赖跟踪、子目录递归编译、可靠时间戳等。开发人员不得不为每一个项目重复繁琐的
+工作 （例如为每个项目，每个目录实现 make install, make distclean, make uninstall 等target）。
+
+Automake 的目的是简化这些反复琐碎的工作，它使用 Makefile.am 表达编译需求（语法比 Makefile 更灵活），
+自动根据生成 Makefile.in 并和 Autoconf 联合使用，并使得项目编译更简单。
+
+例如一个简单的 Hello World 的只有2行：
+
+    bin_PROGRAMS = hello
+    hello_SOURCES = hello.c
+
+#### 2.2 Libtool
+
+Libtool 帮助编译可移植的共享库，而不用关系不同平台上不兼容的工具、编译选项等。
+
+### 3. 生成 configure 脚本
+
+configure 脚本会生成以下文件：
+
+* 一个或者多个 Makefile 文件，通常一个子目录一个。
+* 一个 C 头文件，包含若干 #define 指令，名字可配置
+* 一个名为 config.status 的脚本。运行时会重新创建上面提到的文件
+* 一个名为 config.cache 的脚本（--config-cache) 保存运行的测试的结果。
+* 一个名为 config.log 的文件，包含编译器生成的日志，用于调试错误。
+
+Autoconf 需要输入文件 configure.ac (或者过时的 configure.in) 来创建 configure 脚本。 如果自己实现
+某些 feature tests，则需要编辑类似 aclocal.m4 的文件。如果使用 C 头文件，则需要运行 autoheader。
+
+#### 3.1 编写 configure.ac 文件
+
+这个文件包含 Autoconf 宏，这些宏用于测试项目需要的系统特性。
+
+* Autoconf 已经提供了大量的宏，用于测试非常多的系统特性
+* 也可以使用 Autoconf 模板宏生成自定义的检查
+* 也可以在 configure.ac 中使用 shell 脚本执行检查
+
+    your source files --> [autoscan*] --> [configure.scan] --> configure.ac
+
+    configure.ac    --+
+                      |     +----> autoconf*    --> configure
+    [aclocal.m4]    --+-----+
+                      |     +---->[autoheader*] --> [config.h.in]
+    [acsite.m4]     --+
+
+    Makefile.in
+
+如果同时使用 Autoconf 和 Automake，则还有以下处理：
+
+    [acinclude.m4]  --+
+                      |
+    [local macros]  --+-->  aclocal* --> aclocal.m4
+                      |
+    configure.ac    --+
+
+    configure.ac    --+
+                      |-->  automake*   --> Makefile.in
+    Makefile.am     --+
+
+配置时：
+
+                                +---------------> [config.cache]
+    configure*      --+---------+---------------> config.log
+                      |         |
+    [config.h.in]   --+         V             +-> [config.h] --+
+                      |-->  config.status*  --+                +--> make*
+    Makefile.in     --+                       +-> Makefile   --+
+
+##### 3.1.1 Shell 脚本编译器
+
+autoconf 自身需要运行在各种系统上，因而只能用这些系统的一个公共子集。autoconf 需要一个类似编译器的东西，把 configure.ac
+翻译成可移植的shell 脚本：`configure`。
+
+autconf 通过扩展 sh 来实现这个编译器。因而通过宏扩展实现autoconf的扩展是一个自然而然的选择：autoconf编译器不断的对
+输入 text 执行宏扩展，使用宏体替换宏调用，最终生成一个纯 sh 脚本。
+
+autoconf 没有自定义自己的宏语言，而是使用了一个通用的宏语言：M4。
+
+##### 3.1.2 Autoconf 语言
+
+Autoconf 语言和大多数计算机语言不同，读起来像自然语言。
+
+首先需要区分literal strings和宏: 
+
+
+ 未完待续
