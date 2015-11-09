@@ -372,7 +372,521 @@ AC_DEFINE 修改 #undef 为适当的 #define。
 
 这些宏检查某个工具是否存在或者是否支持特定的行为。
 
-    AC_PROG_AWK
+    AC_PROG_AWK: 依次检查 gawk, mawk, nawk, awk, 并设置 AWK 为第一个找到的程序。
+
+    AC_PROG_GREP: 设置 GREP 为 grep 或者 ggrep 的最佳实现。
+
+    AC_PROG_EGREP: 检查 $GREP -E 或者选择 egrep 或者 gegrep。设置输出变量 EGREP
+
+    AC_PROG_FGREP: 检查 $GREP -F, 或者 fgrep， gfgrep
+
+    AC_PROG_INSTALL: 设置输出变量 INSTALL 为 BSD 兼容的 install 程序。如果PATH里面找不到，则设置
+        INSTALL 为 dir/install-sh -c'. 也设置 INSTALL_PROGRAM 和 INSTALL_SCRIPT 为 ${INSTALL},
+        INSTALL_DATA 为 ${INSTALL} -m 644
+
+    AC_PROG_MKDIR_P: 设置输出变量 MKDIR_P， 如果可能使用 mkdir -p，如果不支持，则使用 install-sh -d。
+
+    AC_PROG_LEX：设置输出变量 LEX 为flex/lex, LEXLIB 为 -lfl/-ll。如果都不存在，则设置为 ':'.
+
+    AC_PROG_LN_S: ln -s
+
+    AC_PROG_RANLIB
+    AC_PROG_SED
+    AC_PROG_YACC
+
+#### 5.3 通用程序和文件检查
+
+    AC_CHECK_PROG(variable, prog-to-check-for, value-if-found, [value-if-not-found], [path=$PATH], [reject])
+
+    AC_CHECK_PROGS(variable, progs-to-check-for, [value-if-not-found], [path='$PATH'])
+    检查progs-to-check-for在 PATH 中是否存在，如果存在，则设置变量为程序的名字，否则检查list中得下一个。
+    如果一个也没找到，则设置输出变量为 value-if-not-found. 如果value-if-not-found 没有设置，则变量的值
+    不变。 需要对变量调用 AC_SUBST。
+
+    AC_CHECK_TOOL(variable, prog-to-check-for, [value-if-not-found], [path=$PATH])
+    和 AC_CHECK_PROG 类似，但是会先检查是否存在带有 --host 前缀的程序。
+        configure --build=x86_64-gnu --host=i386-gnu
+
+        则 AC_CHECK_TOOL([RANLIB], [ranlib], [:]): 则先查找 i386-gnu-ranlib 是否存在，然后是ranlib，
+        最后是 ：。
+
+    AC_CHECK_TOOLS(variable, progs-to-check-for, [value-if-not-found], [path=$PATH])
+
+    AC_PATH_PROG(variable, prog-to-check-for, [value-if-not-found], [path=$PATH])
+    和 AC_CHECK_PROG 类似，但是设置输出变量为程序的绝对路径名。
+
+    AC_PATH_PROGS(variable, progs-to-check-for, [value-if-not-found], [path=$PATH])
+
+#### 5.4 文件：有时候需要检查文件是否存在。交叉编译时不可用。考虑运行时检查是不是更合理。
+
+    AC_CHECK_FILE(file, [action-if-found], [action-if-not-found])
+    在本地系统上检查文件是否存在。
+
+    AC_CHECK_FILES
+
+库文件： 检查 C、C++、Fortran或者 Go库是否存在
+
+    AC_CHECK_LIB(library, function, [action-if-found], [action-if-not-found], [other-libraries])
+    检测library是否存在，检查方法为使用该library链接调用给定函数的一个测试程序。 通常 function 是库提供的
+    函数之一。
+
+    action-if-found: 是一系列shell命令。缺省动作为添加 -llibrary 到 LIBS 中，并定义 HAVE_LIBlibrary.
+
+    建议使用 AC_SEARCH_LIBS。
+
+    AC_SEARCH_LIBS(function, search-libs, [action-if-found], [action-if-not-found], [other-libs])
+    依次测试链接 search-libs，判断是否能调用给定函数，如果成功，则将 -llibrary 加到 LIBS 头部。
+
+库函数：检查特定的 c 库函数
+
+    1. c函数可移植性问题
+
+    exit
+    free： C 标准说 free(NULL) 不做任何操作，而老的系统不支持。
+    isinf/isnan: C99 说这些是宏. C99 的isinf可以支持 long double，然后 pre-C99 只能使用 double 参数。
+        最好的办法是使用 gnulib 模块中得isinf和isnan，一个简单的方法：
+
+        #include <math.h>
+        #ifndef isnan
+        #define isnan(x)    \
+            (sizeof(x) == sizeof(long double) ? isnan_ld(x) \
+             : sizeof(x) == sizeof(double) ? isnan_d(x) \
+             : isnan_f(x))
+
+        static inline int isnan_f(float x) { return x != x; }
+        static inline int isnan_d(double x) { return x != x; }
+        static inline int isnan_ld(long double x) { return x != x };
+        #endif
+
+    malloc: C 标准诶有定义 malloc(0) 的行为
+
+    putenv
+    realloc： realloc(NULL, size)
+    signal handler:
+
+    snprintf:
+    sprintf
+    sscanf
+    strerror_r
+    strnlen
+    sysconf
+    unlink
+    unsetenv
+
+    va_copy
+    va_list
+
+    Signed >>:
+    Integer /
+
+    2. 特殊函数检查
+
+    AC_FUNC_ALLOCA： alloca
+    AC_FUNC_CHOWN
+    AC_FUNC_CLOSEDIR_VOID
+
+    AC_FUNC_ERROR_AT_LINE
+    AC_FUNC_FNMATCH
+    AC_FUNC_FNMATCH_GNU
+
+    AC_FUNC_FORK: 检查 fork 和vfork
+    AC_FUNC_FSEEKO
+    AC_FUNC_GETGROUPS
+    AC_FUNC_GETLOADAVG
+    AC_FUNC_GETMNTENT
+    AC_FUNC_GETPGRP
+    AC_FUNC_MALLOC
+    AC_FUNC_MBRTOWC
+    AC_FUNC_MEMCMP:
+    AC_FUNC_MKTIME
+    AC_FUNC_MMAP
+    ...
+    AC_FUNC_STAT
+    AC_FUNC_LSTAT
+    AC_FUNC_STRFTIME
+    AC_FUNC_STRTOD
+    AC_FUNC_STRTOLD
+    ...
+
+    3. 普通函数检查：通常先使用 AC_CHECK_LIB 检查库是否存在
+
+    AC_CHECK_FUNC(function, [action-if-found], [action-if-not-found])
+
+    AC_CHECK_FUNS(function..., [action-if-found], [action-if-not-found])
+        依次检查每个函数，如果存在，则定义 HAVE_function。 如果后面参数存在，则额外执行。
+
+    AC_CHECK_FUNCS_ONE(function...)
+
+    AC_LIBOBJ(function)
+        要求 function.c 必须包含在可执行文件中，以替换 function 的问题实现。
+
+    AC_LIBSOURCE(file)：编译本项目，必须该文件。
+    AC_LIBSOURCES(files)
+    AC_CONFIG_LIBOBJ_DIR(directory)
+
+    AC_REPLACE_FUNCS(function...)
+        和 AC_CHECK_FUNCS 类似，但是使用 AC_LIBOBJ(function) 作为 action-if-not-found.
 
 
- 未完待续
+#### 5.5 头文件
+
+下面的宏检查某些头文件是否存在。
+
+    headers 的可移植性问题
+
+    limits.h: C99 要求 limits.h 定义 LLONG_MIN， LLONG_MAX，ULLONG_MAX，但是非 c99 没有定义。
+
+    inttypes.h vs. stdint.h
+    linux/irda.h
+    linux/random.h
+    net/if.h
+    netinet/if_ehter.h
+    stdint.h
+    stdlib.h
+    sys/mount.h
+    sys/ptem.h
+    sys/socket.h
+
+    AC_HEADER_STDC: 检查 stdlib.h, stdarg.h, string.h, float.h
+    AC_HEADER_TIME
+
+    通用 header checks：
+
+    AC_CHECK_HEADER(header-file, [action-if-found], [action-if-not-found], [includes])
+    AC_CHECK_HEADERS(header-file..., [action-if-found], [action-if-not-found], [includes])
+        遍历给定头文件，如果存在，则定义 HAVE_header-file
+
+        AC_CHECK_HEADERs([foo.h])
+        AC_CHECK_HEADERS([bar.h], [], [],
+            [#ifdef HAVE_FOO_H
+             #include <foo.h>
+             #endif
+        ])
+
+#### 5.6 声明
+
+下面的宏检查变量和函数的声明。
+
+    AC_CHECK_DECL(symbol, [action-if-found], [action-if-not-found], [includes='AC_INCLUDES_DEFAULT'])
+    如果符号（函数、变量或者常数）没有被 includes 声明，则执行 action-if-not-found. 否则执行 action-if-found.
+    includes 是头文件包含指令，缺省为 AC_INCLUDES_DEFAULT.
+
+    检查结果缓存在变量 `ac_cv_have_decl_symbol` 变量中。
+
+    AC_CHECK_DECLS(symbols, [action-if-found], [action-if-not-found], [includes='AC_INCLUDES_DEFAULT'])
+    对于每个符号，如果声明了，则定义 HAVE_DECL_symbol 为1，否则为0.
+
+        #if defined HAVE_DECL_MALLOC && !HAVE_DECL_MALLOC
+        void *malloc (size_t *s);
+        #endif
+
+
+#### 5.7 结构体
+
+下面的宏检查C结构体是否包含特定的域。
+
+    特定的结构体检查
+
+    AC_STRUCT_DIRENT_D_INFO: 检查 struct dirent 是否包含 d_ino。
+    AC_STRUCT_DIRENT_D_TYPE：检查 struct dirent 是否包含 d_type.
+    AC_STRUCT_ST_BLOCKS
+    AC_STRUCT_TM
+    AC_STRUCT_TIMEZONE: struct tm 包含 tm_zone?
+
+    通用结构体检查
+
+    AC_CHECK_MEMBER(aggrgate.member, [action-if-found], [action-if-not-found], [includes='AC_INCLUDES_DEFAULT'])
+    检查 aggregate 是否含有 member。
+        AC_CHECK_MEMBER([struct passwd.pw_gecos], []
+                        [AC_MSG_ERROR([we need 'passwd.pw_gecos'])],
+                        [[#include <pwd.h>]])
+        检查结果保存在 ac_cv_member_aggregate_member 变量中。
+
+    AC_CHECK_MEMBERS(members, [action-if-found], [action-if-not-found], [includes='AC_INCLUDES_DEFAULT'])
+    检查每个 aggregate.member，如果存在则定义 HAVE_aggregate_member.
+        AC_CHECK_MEMBERS([struct stat.st_rdev, struct stat.st_blksize])
+
+
+#### 5.8 类型
+
+下面的宏检查c类型。
+
+    特定类型检查：下面的宏检查 sys/types.h, stdlib.h, stdint.h, inttypes.h 中得c类型。
+    Gnulib 的 stdint 模块定义了更好的办法。如果使用C99，建议使用 stdint。
+
+    AC_TYPE_GETGROUPS
+
+    AC_TYPE_INT8_T: 如果 stdint.h 或者 inttypes.h 没有定义 int8_t, 则定义 int8_t 。
+    AC_TYPE_INT16_T
+    AC_TYPE_INT32_T
+    AC_TYPE_INT64_T
+    AC_TYPE_INTMAX_T: 检查 inttypes.h 是否定义了类型 intmax_t 并定义 HAVE_INTMAX_T
+    AC_TYPE_INTPTR_T: intptr_t 和 HAVE_INTPTR_T
+    AC_TYPE_LONG_DOUBLE
+    AC_TYPE_LONG_DOUBLE_WIDER
+    AC_TYPE_LONG_LONG_INT
+    AC_TYPE_MBSTATE_T
+    AC_TYPE_MODE_T
+    AC_TYPE_OFF_T
+    AC_TYPE_PID_T
+    AC_TYPE_SIZE_T
+    AC_TYPE_SSIZE_T
+    AC_TYPE_UID_T
+    AC_TYPE_UINT8_T
+    AC_TYPE_UINT16_T
+    AC_TYPE_UINT32_T
+    AC_TYPE_UINT64_T
+    AC_TYPE_UINTMAX_T
+    AC_TYPE_UINTPTR_T
+    AC_TYPE_UNSIGED_LONG_LONG_INT
+
+    通用类型检查
+
+    AC_CHECK_TYPE(type, [action-if-found], [action-if-not-found], [includs='AC_INCLUDES_DEFAULT'])
+    检查type是否定义了。结果保存在 ac_cv_type_type 变量中。
+
+    AC_CHECK_TYPES(types, [action-if-found], [action-if-not-found], [includes='AC_INCLUDES_DEFAULT'])
+    对每个定义的types 类型，定义宏 HAVE_type.
+        AC_CHECK_TYPES([unisgned long long int, uintmax_t])
+
+#### 5.9 编译器和预处理器
+
+编译器测试宏 (AC_PROG_CC, AC_PROG_CXX, AC_PROG_F77) 根据编译器的输出定义输出变量 EXEEXT， OBJEXT 等。
+
+    AC_CHECK_SIZEOF
+    AC_CHECK_ALIGNOFF
+    AC_COMPUTE_INT
+    AC_LANG_WERROR
+    AC_OPENNMP
+
+c 编译器特性检查
+
+    AC_PROG_CC([compiler-search-list])
+    确定使用哪个 c 编译器, 如果 CC 没有设置，则检查 gcc 和 cc，然后是其他编译器。设置输出变量 CC 为找到的编译器。
+        AC_PROG_CC([gcc cl cc])
+
+    AC_PROG_CC_C_O
+    AC_PROG_CC_STDC
+    AC_PROG_CC_C89
+    AC_PROG_CC_C99
+    AC_C_BACKSLASH_A
+    AC_C_BIGENDIAN
+    AC_C_CONST
+    AC_C_RESTRICT
+    AC_C_VOLATILE
+    AC_C_INLINE
+    AC_C_CHAR_UNSIGNED
+    AC_C_STRINGIZE
+    AC_C_FLEXIBLE_ARRAY_MEMBER
+    AC_C_VARARRAYS
+    AC_C_TYPEOF
+    AC_C_PROTOTYPES
+    AC_PROG_GCC_TRADITONAL
+
+Go 编译器特性
+
+    AC_PROG_GO
+    AC_PATH_X
+    AC_PATH_XTRA
+
+### 6. 实现 Autoconf 测试
+
+若已有的特性测试满足不了要求，则可以自定义测试宏。
+
+#### 6.1 语言选择
+
+自动生成的 configure 脚本默认检查 c 编译器和特性。如果使用其他语言，则用下面的宏
+
+    AC_LANG(language)
+
+#### 6.2 实现测试宏
+
+Autoconf 的测试遵循一个规则：传递某些输入给某些程序；大多数情况下，使用编译器编译某些源文件。
+
+测试程序不要使用标准输出，如果测试成功，返回退出状态0，否则返回1. 不要直接使用 exit。
+
+测试程序可以使用宏定义：#if, #ifdef 等。
+
+Autoconf 提供了一组宏来生成测试源代码。
+
+    AC_LANG_CONFTEST(source)
+    保存 source 代码到当前测试源文件 conftest.extension 中。 extension 依赖于当前语言。
+
+    source 内容仅被执行一次，类似于其他Autoconf宏参数，因而 1）you may pass a macro invocation; 2) if not, be sure double quote if needed.
+
+    通常不会直接使用这个宏，而是使用 AC_COMPILE_IFELSE, AC_RUN_IFELSE.
+
+    AC_LANG_DEFINES_PROVIDED
+
+    AC_LANG_SOURCE(source)
+    AC_LANG_PROGRAM(prologue, body)
+    AC_LANG_CALL(Prologue, function)
+    AC_LANG_FUNC_LINK_TRY
+
+#### 6.3 运行预处理器
+
+    AC_PREPROC_IFELSE (input, [action-if-true], [action-if-false])
+
+    AC_INIT([Hello], [1.0], [bug-hello@example.org])
+    AC_DEFINE([HELLO_WORLD], ["Hello, World\n"],
+              [Greetings string.])
+    AC_PREPROC_IFELSE(
+            [AC_LANG_PROGRAM([[const char hw[] = "Hello, World\n";]],
+                             [[fputs (hw, stdout);]])],
+            [AC_MSG_RESULT([OK])],
+            [AC_MSG_FAILURE([unexpected preprocessor failure])])
+
+#### 6.4 运行编译器
+
+检查当前语言编译器的语法特征，例如是否识别某个关键字等。
+
+    AC_COMPILE_IFELSE(input, [action-if-true], [action-if-false])
+    根据当前的语言的编译器和编译选项，编译给地的 input，如果成功，运行shell命令：action-if-true, 否则执行 action-if-false.
+
+    input 通常使用 AC_LANG_PROGRAM 实现。
+
+#### 6.5 运行连接器
+
+需要检查库、函数和全局变量是， configure 脚本试图编译并链接使用他们的一个小程序。
+
+    AC_LINK_IFELSE(input, [action-if-true], [action-if-false])
+    用于编译测试函数，并测试函数和全局变量。 AC_CHECK_LIB 常使用它来检查库是否存在。
+
+#### 6.6 检查运行时行为
+
+有时候需要检查系统运行时的情况，例如某个函数是否具备某种行为或者含有某个bug。这种问题建议运行时检查，而不是配置时。
+如果需要配置时检查，则使用 AC_RUN_IFELSE.
+
+#### 6.7 条件语句
+
+Autoconf 本身不支持条件语句，但是可以使用 shell 来实现。
+
+    AC_MSG_CHECKING([how to get file system type])
+
+    fstype=no
+    # The order of these tests is important.
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/statvfs.h>
+                                         #include <sys/fstyp.h>]])],
+                      [AC_DEFINE([FSTYPE_STATVFS], [1], [Define if statvfs exists.])
+                      fstype=SVR4])
+    if test $fstype = no; then
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/statfs.h>
+                                             #include <sys/fstyp.h>]])],
+                          [AC_DEFINE([FSTYPE_USG_STATFS], [1], [Define if USG statfs.])
+                          fstype=SVR3])
+    fi
+    if test $fstype = no; then
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/statfs.h>
+                                             #include <sys/vmount.h>]])]),
+                          [AC_DEFINE([FSTYPE_AIX_STATFS], [1], [Define if AIX statfs.])
+                          fstype=AIX])
+    fi
+    # (more cases omitted here)
+    AC_MSG_RESULT([$fstype])
+
+
+### 7. 测试结果
+
+有四种方式处理 configure 的测试结果：
+
+* 定义一个 C 预处理符号
+* 设置输出变量
+* 保存到 cache 文件中
+* 打印一条消息
+
+#### 7.1 定义 c 预处理器符号
+
+最常见的方式是使用 AC_DEFINE、AC_DEFINE_UNQUOTED 保存测试结果。
+
+AC_DEFINE 的常用方式是和 AC_CONFIG_HEADERS 合用，如果测试成功，则使用 #define 替换调用模板文件中的响应语句，最终 AC_OUTPUT
+回生成适当的头文件。
+
+    AC_DEFINE(variable, value, [description])
+    AC_DEFINE(variable)
+    定义变量为 value（字面量）
+
+    AC_DEFIINE_UNQUOTED(varialbe,value, [description])
+    AC_DEFIINE_UNQUOTED(variable)
+    类似 AC_DEFINE，但是会对变量和值执行3种shell扩展：变量扩展($), 命令替换(`), 和转义（\)。 单引号和双引号没有特殊含义。
+    如果变量或者value是个shell变量，则使用这种方式。
+
+        AC_DEFINE_UNQUOTED([config_machfile], ["$machfile"], [Configuration machine file.])
+        AC_DEFINE_UNQUOTED([GETGROUPS_T], [$ac_cv_type_getgroups], [getgroups return type.])
+        AC_DEFINE_UNQUOTED([$ac_tr_hdr], [1], [Translated header name.])
+
+    和别的宏连用
+        AC_CHECK_HEADER([elf.h],
+                        [AC_DEFINE([SVR4], [1], [System V Release 4]) LIBS="-lelf $LIBS"])
+
+#### 7.2 设置输出变量
+
+输出变量是 shell 变量，在configure输出文件时，会进行替换。
+
+    AC_SUBST(variable, [value])
+    根据shell变量创建输出变量。 AC_OUTPUT 会对输出文件（通常是 Makeifles）中的变量进行替换。也就是 AC_OUTPUT 被调用时，它会
+    替换输入文件中的所有 @variable@ 为 variable 的值。
+
+    AC_SUBST_FILE(variable)
+    AC_OUTPUT 将 @variable@ 替换为文件的内容
+
+    AC_ARG_VAR(variable, description)
+
+#### 7.3 输出变量中得特殊符号
+
+很多输出变量会被 make 和 shell 处理，他们在不同的上下文会执行不同欧冠的替换，所以为了避免混淆，尽量不使用一些特殊字符。
+
+    " # $ & ’ ( ) * ; < > ? [ \ ^ ‘ |
+
+#### 7.4 缓存结果
+
+configure 可以保存check结果到缓存文件中，避免重复的检查某些特性。如果启用了缓存，并且缓存文件存在，则configure会从里面读检查的
+结果，而不是重复运行检查。
+
+    AC_CACHE_VAL(cache-id, commands-to-set-it)
+    AC_CACHE_CHECK(message, cache-id, commands-to-set-it)
+
+#### 7.5 打印消息
+
+下面的宏可以展示消息给用户，这些参数都是用shell的双引号括起来，以便 shell 可以执行变量替换和命令替换。
+
+    AC_MSG_CHECKING(feature-description)
+    AC_MSG_RESULT(result-description)
+    这两个要合用。
+
+    AC_MSG_NOTICE
+    AC_MSG_ERROR
+    AS_MSG_FAILURE
+    AC_MSG_WARN
+
+### 8. M4 编程
+
+Autoconf 构建与2个层次之上：M4sugar, 提供宏方便纯 M4 编程； M4sh， 提供宏用于shell脚本生成。
+
+#### 8.1 M4 quotation
+
+Autoconf 的特殊字符：
+
+* #: 注释，不会执行宏扩展
+* ,: 分割参数
+* []: 本身是转义字符
+* ()
+* $
+
+每次发生宏扩展，也会执行转义（quotation expansion），例如一个级别的quotes被去掉
+
+    int tab[10]
+    => int tab10
+    [int tab[10]]
+    => int tab[10]
+
+#### 8.2 使用 autom4te
+
+#### 8.3 使用 M4sugar 编程
+
+#### 8.4 通过 autom4te 调试
+
+### 9. M4sh 编程
+
+### 10. 实现 Autoconf 宏
+
+未完待续
