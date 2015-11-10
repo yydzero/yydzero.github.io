@@ -18,6 +18,11 @@ categories: GPDB
 Greenplum Database 编译和运行依赖于各种系统库和Python库。需要先安装这些依赖。
 
     $ sudo yum install curl-devel bzip2-devel python-devel openssl-devel
+    $ sudo yum install perl-ExtUtils-Embed  # If enable perl
+    $ sudo yum install libxml2-devel        # If enable XML support
+    $ sudo yum install openldap-devel       # If enable LDAP
+
+    $ sudo yum install perl-Env             # If need installcheck-good
 
     $ wget https://bootstrap.pypa.io/get-pip.py
     $ sudo python get-pip.py

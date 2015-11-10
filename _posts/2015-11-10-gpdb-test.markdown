@@ -1,0 +1,60 @@
+---
+layout: post
+title:  "如何执行 GPDB 测试"
+author: 姚延栋
+date:   2015-11-10 11:20:43
+categories: GPDB test
+---
+
+### 如何执行 GPDB 的测试
+
+#### 基本步骤
+
+在运行这些测试前，需要启动 GPDB，并且 export PGPORT和MASTER_DATA_DIRECTORY 两个环境变量
+
+    -bash-4.1$ echo $MASTER_DATA_DIRECTORY
+    /home/gpadmin/data/gpdb.master/master/gpseg-1
+    -bash-4.1$ echo $PGPORT
+    5432
+
+运行测试
+
+    $ cd $topdir
+    $ make installcheck-good
+
+或者直接进入测试代码目录
+
+    $ cd $topdir/src/test
+    $ make installcheck-good
+
+installcheck-good 目标会进入 src/test 并执行相应的测试，而该目录下得 Makefile 直接调用 `$(MAKE) -C regress $@`
+
+    check installcheck installcheck-parallel installcheck-good:
+            $(MAKE) -C src/test $@
+
+src/test/Makefile. 使用了 .DEFAULT 目标。
+
+    .DEFAULT:
+    	$(MAKE) -C regress $@
+
+#### installcheck-good 测试内容
+
+installcheck-good 调用 pg_regress 执行2个schedule：
+
+* parallel_schedule: 包含 PostgreSQL 社区的测试用例，和 GPDB 有冲突的测试被 disable 了。
+* greenplum_schedule： 包含 GPDB 的测试用例
+
+
+#### 运行单个测试
+
+     // make installcheck-good TT=float4 由于 f18c7e45f683924112d9ebdfef748557be3d8ac2，这种方式不行了。
+     ./pg_regress <testname>
+
+例如
+
+    ./pg_regress custom_format
+
+对于 bugbuster 测试：
+
+    ./pg_regress --inputdir=bugbuster  --outputdir=bugbuster <testname>
+
