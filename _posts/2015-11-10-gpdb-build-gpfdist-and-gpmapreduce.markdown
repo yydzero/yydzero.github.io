@@ -24,6 +24,9 @@ gpfdist 编译需要 libyaml-devel，然而默认的RHEL repo不包括 libyaml-d
 
     $ sudo yum install -y apr-devel apr-util apr-util-devel libevent libevent-devel libyaml libyaml-devel
 
+#### 编译
+
     $ ./configure --prefix=$HOME/build/gpdb.master
     $ make && make install
+    $ make installcheck
 
