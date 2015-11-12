@@ -58,3 +58,30 @@ installcheck-good 调用 pg_regress 执行2个schedule：
 
     ./pg_regress --inputdir=bugbuster  --outputdir=bugbuster <testname>
 
+
+### pg_regress 介绍
+
+pg_regress 是 GPDB 回归测试驱动程序。它会根据一定的规则运行特定目录里面的 SQL 脚本，并将测试结果和期望的结果进行比较。
+
+#### 基本原理
+
+默认运行 sql 目录下得脚本文件（根据名字可以运行指定脚本），将结果保存到 resuls/*.out 下面，并和 expected/*.out 进行比较。
+
+#### 模板支持
+
+如果 SQL 脚本中需要使用某些变量、占位符，譬如 SQL 和主机名或者某些目录相关，则可以使用类似模板的技术。
+
+在 input 目录下得 sql 脚本可以包含例如 @var@ 的变量， pg_regress 执行时，会动态生成 sql 脚本，并运行。
+
+### GPDB enhancement
+
+GPDB 提供了几个 perl 脚本以执行某些处理，这些脚本默认位于 src/test/regress 目录下。 运行这个目录下的测试程序没有问题，
+但是如果在其他目录下，譬如 extension/gpfdist，如果需要执行模板中的变量替换，会报告找不到 gpstringsub.pl 脚本的错误。
+
+有几个主要的目录：
+
+* inputdir: 默认是当前目录
+* outputdir： 默认是当前目录
+* srcdir: 源代码目录的绝对路径 （用于 VPATH 编译）
+* temp-install： 临时安装目录
+* bindir: 这个变量很重要，它来自于 pg_config_paths.h 和 Makefile。 如果找不到正确的路径，多半是 ./configure --prefix=/path 设置错了。
