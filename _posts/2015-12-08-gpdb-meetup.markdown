@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "TPCH 介绍"
+title:  "首届Greenplum中国技术研讨会"
 author: 姚延栋
 date:   2015-12-08 10:20:43
 categories: GPDB Greenplum数据库 研讨会 Meetup
