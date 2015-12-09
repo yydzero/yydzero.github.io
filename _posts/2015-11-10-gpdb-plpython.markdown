@@ -10,3 +10,5 @@ categories: GPDB python plpython
 
 GPDB 基于 PostgreSQL，具有丰富的扩展能力，其中之一就是支持使用 Python 写 UDF，这在实际应用中非常方面。
 
+待续
+
