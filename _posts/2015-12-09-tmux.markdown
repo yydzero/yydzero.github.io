@@ -1,0 +1,18 @@
+---
+layout: post
+title:  "tmux"
+author: 姚延栋
+date:   2015-12-09 17:20:43
+categories: tmux
+---
+
+### 安装 tmux
+
+    brew install tmux
+
+有时候brew会报告权限错误，则需要适当的处理一些通用目录的权限，例如：
+
+     sudo chown -R `whoami`:admin /usr/local/bin
+     sudo chown -R `whoami`:admin /usr/local/share
+
+     brew link tmux

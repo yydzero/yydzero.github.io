@@ -6,7 +6,7 @@ date:   2015-10-29 14:20:43
 categories: GPDB
 ---
 
-本文以 RHEL7 为例介绍如何编译、安装和运行开源 GPDB。
+本文以 RHEL7 为例介绍如何编译、安装和运行开源 GPDB。 最新的代码（2015/12) 也可以在 RHEL6 上编译了。
 
 
 ### 1. 下载 Greenplum Database 源代码
