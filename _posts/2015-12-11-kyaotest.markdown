@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "如何执行 GPDB 测试"
+title:  "test for my push"
 author: 姚延栋
 date:   2015-11-10 11:20:43
 categories: GPDB test
