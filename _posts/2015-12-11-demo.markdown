@@ -1,0 +1,13 @@
+---
+layout: post
+title:  "demo"
+author: 姚延栋
+date:   2015-12-09 17:20:43
+categories: demo
+---
+
+
+### Demo how to use github hosted blog
+
+* today is friday
+* tmr is sat

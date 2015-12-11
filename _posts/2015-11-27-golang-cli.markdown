@@ -14,7 +14,7 @@ categories: golang gopath package
 
 gopath 被 import 语句用来解决路径问题。实现和文档在 go/build 包中。
 
-环境变量 GOPATH 列出了查找 Go 代码的所有路径: 例如 GOPATH=/home/user/gocode:/home/user/gpdb
+环境变量 GOPATH 列出了查找 Go 代码的所有路径: 例如 GOPATH=/home/user/gocode:/home/user/gpdb. 类似于 Java 中的 classpath。
 
 在标准的 Go 目录外获取、编译和安装包时必须要设置 GOPATH。GOPATH 列出的每个目录必须有特定结构：
 
@@ -29,7 +29,7 @@ import 时通过 GOPATH 查找对应的包，但是下载的新包总是安装�
 
     go help packages
 
-很多命令以包为参数：go action [packages]。 通常 packages 是import路径。
+很多命令以包为参数：go action [packages]。 通常 packages 是 import 是用到的路径名。
 
 导入路径可以使 GOROOT 路径下的导入路径。如果是 . 或者 ..，则表示对应的文件系统路径下的所有包。
 如果找不到，则根据 GOPATH 列出的路径查找。例如导入路径 P 表示 GOPATH 中列出的所有路径 DIR 下的第一个
