@@ -173,7 +173,7 @@ gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流
      stream max bandwidth (MB/s): 10803.10 [g0]
 
 
-#### 一个GPDB cluster的测试结果
+#### 2.3 一个GPDB cluster的测试结果
 
 配置：
 
