@@ -1,0 +1,54 @@
+
+---
+layout: post
+title:  "pgbench"
+author: memo
+date:   2015-12-12 10:20:43
+categories: pgbench
+published: false
+---
+
+pgbench 是一个简单的测试 PostgreSQL 性能的程序。pgbench 反复运行一组 SQL 命令，然后计算 tps。 缺省 pgbench
+测试场景类似 TPC-B （deprecated），一个事务包括5 SELECT,UPDATE,INSERT 命令。场景可以通过自定义脚本文件定制。
+
+    BEGIN;
+    UPDATE pgbench_accounts SET abalance = abalance + :delta WHERE aid = :aid;
+    SELECT abalance FROM pgbench_accounts WHERE aid = :aid;
+    UPDATE pgbench_tellers SET tbalance = tbalance + :delta WHERE tid = :tid;
+    UPDATE pgbench_branches SET bbalance = bbalance + :delta WHERE bid = :bid;
+    INSERT INTO pgbench_history (tid, bid, aid, delta, mtime) VALUES (:tid, :bid, :aid, :delta, CURRENT_TIMESTAMP);
+    END;
+
+
+### 初始化测试数据
+
+    pgbench -i [ other-options ] dbname
+
+    例如：
+
+    pgbench -c 10 -t 1000 pgbench
+
+缺省场景创建4张表： pgbench_accounts, pgbench_branches, pgbench_history, 和 pgbench_tellers
+
+缺省缩放因子 "scale factor" 是1，数据量如下：
+
+    table                   # of rows
+    ---------------------------------
+    pgbench_branches        1
+    pgbench_tellers         10
+    pgbench_accounts        100000
+    pgbench_history         0
+
+### 性能测试
+
+    pgbench [ options ] dbname
+
+常用的选项包括：
+
+* -c: client 个数
+* -t：事务数
+* -T: 时间限制
+* -f：自定义脚本
+
+
+gpcheckperf -r dsN -D -v -h r7
