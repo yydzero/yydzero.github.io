@@ -6,7 +6,7 @@ date:   2015-12-12 10:20:43
 categories: gpcheckperf
 ---
 
-### gpcheckperf 简介
+### 1. gpcheckperf 简介
 
 GPDB 提供了一个工具检查系统的硬件性能，这个工具名字叫 `gpcheckperf`。 它支持以下性能测试：
 
@@ -16,7 +16,7 @@ GPDB 提供了一个工具检查系统的硬件性能，这个工具名字叫 `g
 
 使用 gpcheckperf 之前需要使用 gpssh-exkeys 设置无密码 ssh 访问所有待测试机器。
 
-#### 用法
+#### 1.1 用法
 
     // 测试网络性能
     gpcheckperf -d temp_directory
@@ -29,14 +29,14 @@ GPDB 提供了一个工具检查系统的硬件性能，这个工具名字叫 `g
         {-f hostfile_gpcheckperf | - h hostname [-h hostname ...]}
         [-r ds] [-B block_size] [-S file_size] [-D] [-v|-V]
 
-* -D: 显示每个测试主机的结果
-* --duration: 指定运行网络测试的时间
-* --netperf：使用 netperf 而不是GPDB 自带的网络测试程序，需要区 netperf.org 下载。
-* -r ds{n|N|M}: 执行运行的测试程序，缺省是 dsn
-* -S file_size
-* -v | -V: verbose
+    -D: 显示每个测试主机的结果
+    --duration: 指定运行网络测试的时间
+    --netperf：使用 netperf 而不是GPDB 自带的网络测试程序，需要区 netperf.org 下载。
+    -r ds{n|N|M}: 执行运行的测试程序，缺省是 dsn
+    -S file_size
+    -v | -V: verbose
 
-#### 网络性能测试
+#### 1.2 网络性能测试
 
 gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流给所有待测试节点。
 
@@ -58,7 +58,7 @@ gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流
 
 单节点不会执行网络测试。
 
-#### 磁盘 IO 测试和内存测试
+#### 1.3 磁盘 IO 测试和内存测试
 
 磁盘测试使用 dd 测试磁盘顺序读写的能力。默认处理的文件大小为内存容量的 2 倍，以保证测试的是磁盘IO而不是内存缓存。
 
@@ -70,10 +70,14 @@ gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流
     gpcheckperf -r ds -h r7 -d ~/tmp
 
 
-### 虚拟机性能检查结果
+### 2. 运行结果例子
+
+#### 2.1 macpro 上 RHEL7 虚拟机性能检查结果样例
 
 * 内存：4G
 * CPU：2
+
+磁盘测试结果：
 
     gpcheckperf -r dsN -D -v -h r7 -d ~/tmp
 
@@ -97,3 +101,74 @@ gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流
      disk read max bandwidth (MB/s): 1514.06 [r7]
      -- per host bandwidth --
         disk read bandwidth (MB/s): 1514.06 [r7]
+
+内存测试结果
+
+    ○ → gpcheckperf -r s -h r7 -d ~/tmp
+    /home/gpadmin/gpdb/gpdb.20151212/bin/gpcheckperf -r s -h r7 -d /home/gpadmin/tmp
+
+    --------------------
+    --  STREAM TEST
+    --------------------
+
+    ====================
+    ==  RESULT
+    ====================
+
+     stream tot bandwidth (MB/s): 21290.88
+     stream min bandwidth (MB/s): 21290.88 [r7]
+     stream max bandwidth (MB/s): 21290.88 [r7]
+
+#### 2.2 基于 ESX 的虚拟机结果例子
+
+配置情况
+
+* 内存： 32G， 由于内存比较大，而磁盘空间较小，所以使用了 -S 选项。
+
+磁盘测试结果
+
+    -bash-4.1$ gpcheckperf -rd -h g0 -d ~/tmp -S 20480000000
+    /home/gpadmin/build/gpdb.master/bin/gpcheckperf -rd -h g0 -d /home/gpadmin/tmp -S 20480000000
+
+    --------------------
+    --  DISK WRITE TEST
+    --------------------
+
+    --------------------
+    --  DISK READ TEST
+    --------------------
+
+    ====================
+    ==  RESULT
+    ====================
+
+     disk write avg time (sec): 30.30
+     disk write tot bytes: 20480000000
+     disk write tot bandwidth (MB/s): 644.60
+     disk write min bandwidth (MB/s): 644.60 [g0]
+     disk write max bandwidth (MB/s): 644.60 [g0]
+
+
+     disk read avg time (sec): 5.40
+     disk read tot bytes: 20480000000
+     disk read tot bandwidth (MB/s): 3616.90
+     disk read min bandwidth (MB/s): 3616.90 [g0]
+     disk read max bandwidth (MB/s): 3616.90 [g0]
+
+内存测试结果
+
+    ± |stream ?:2 ✗| →  gpcheckperf -r s  -d ~/tmp -h g0
+    /home/gpadmin/build/gpdb.master/bin/gpcheckperf -r s -d /home/gpadmin/tmp -h g0
+
+    --------------------
+    --  STREAM TEST
+    --------------------
+
+    ====================
+    ==  RESULT
+    ====================
+
+     stream tot bandwidth (MB/s): 10803.10
+     stream min bandwidth (MB/s): 10803.10 [g0]
+     stream max bandwidth (MB/s): 10803.10 [g0]
+
