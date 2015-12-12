@@ -172,3 +172,76 @@ gpcheckperf 使用一个网络测试程序从本机传输 5 秒的 TCP 数据流
      stream min bandwidth (MB/s): 10803.10 [g0]
      stream max bandwidth (MB/s): 10803.10 [g0]
 
+
+#### 一个GPDB cluster的测试结果
+
+配置：
+
+* CPU： 24 cores, Dell R510, 2 X5670
+* 内存： 48G  (6 x 8GB DIMMS)
+* 磁盘： 5.4T, H700 Internal RAID card, 12x 3.5” 6OOGB SAS
+
+
+测试结果：
+
+    /usr/local/greenplum-db/./bin/gpcheckperf -f /home/gpadmin/gpconfigs/hostfile_segments_nosdw3 -d /data1/1 -d /data1/2 -d /data1/3 -d /data2/1 -d /data2/2 -d /data2/3
+
+    --------------------
+    --  DISK WRITE TEST
+    --------------------
+
+    --------------------
+    --  DISK READ TEST
+    --------------------
+
+    --------------------
+    --  STREAM TEST
+    --------------------
+
+    -------------------
+    --  NETPERF TEST
+    -------------------
+
+    ====================
+    ==  RESULT
+    ====================
+
+     disk write avg time (sec): 88.75
+     disk write tot bytes: 1212003385344
+     disk write tot bandwidth (MB/s): 13055.24
+     disk write min bandwidth (MB/s): 994.23 [sdw11]
+     disk write max bandwidth (MB/s): 1154.79 [sdw12]
+
+
+     disk read avg time (sec): 85.11
+     disk read tot bytes: 1212003385344
+     disk read tot bandwidth (MB/s): 13618.27
+     disk read min bandwidth (MB/s): 1022.52 [ sdw6]
+     disk read max bandwidth (MB/s): 1254.84 [sdw12]
+
+
+     stream tot bandwidth (MB/s): 72491.28
+     stream min bandwidth (MB/s): 5984.65 [sdw10]
+     stream max bandwidth (MB/s): 6136.23 [sdw15]
+
+    Netperf bisection bandwidth test
+    sdw5 -> sdw6 = 1092.750000
+    sdw7 -> sdw8 = 1054.080000
+    sdw9 -> sdw10 = 1074.670000
+    sdw11 -> sdw12 = 1072.420000
+    sdw13 -> sdw14 = 1083.420000
+    sdw15 -> sdw16 = 1075.410000
+    sdw6 -> sdw5 = 1096.550000
+    sdw8 -> sdw7 = 1091.640000
+    sdw10 -> sdw9 = 1094.260000
+    sdw12 -> sdw11 = 1093.730000
+    sdw14 -> sdw13 = 1088.050000
+    sdw16 -> sdw15 = 1099.570000
+
+    Summary:
+    sum = 13016.55 MB/sec
+    min = 1054.08 MB/sec
+    max = 1099.57 MB/sec
+    avg = 1084.71 MB/sec
+    median = 1091.64 MB/sec
+
