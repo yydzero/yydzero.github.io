@@ -1,0 +1,103 @@
+---
+layout: post
+title:  "LOCK memo #2"
+author: Kenan Yao
+date:   2015-12-13 18:00:00
+categories: lock
+published: false
+---
+
+==> LOCKTAG uniquely identifies a resource to be locked;
+
+==> LOCK structure descripts the live locking situation of a target resource,
+	that is to say, which processes acquired the lock on this target resource,
+	and which processes are waiting for the lock on this target resource;
+	--> LOCKTAG tag
+	--> LOCKMASK grantMask: all the lock modes that have been granted on this target
+		resource;
+	--> LOCKMASK waitMask: all the lock modes wait to be granted on this target
+		resource;
+	--> SHM_QUEUE procLocks: all the procs that have been granted the lock on
+		the target resource, not in PGPROC list form, but in LOCKPROC list form,
+		here SHM_QUEUE is the *head* of the list;
+		--> SHM_QUEUE is a structure widely used for share memory code, it is a
+			part of the share memory double linked list implementation; each element
+			in the linked list is a SHM_QUEUE structure, there is no data field in
+			SHM_QUEUE, the pointer of the data can be get by using the offset and
+			the pointer of the SHM_QUEUE element, so by this way, the linked list
+			functionality is abstracted out;
+
+			One more thing worth mention is, for structures to be in share memory,
+			we have no pointer as a field, because same share memory region can be
+			mapped to different address in different processes, so we use strucuture
+			itself and offset to avoid memory corruption;
+
+			Another thing is: when SHM_QUEUE is a field of a structure, when
+			perform insert/delete of list, only the SHM_QUEUE would be adjusted;
+			when perform next/prev of list, the offset of SHM_QUEUE in the
+			structure is considered, so the returned pointer is for the
+			structure instead of the SHM_QUEUE; so better to put the SHM_QUEUE
+			as the last field of the structure to make use of this
+			implementation, but you can put it as the first field also, that is
+			easier; Note that, SHM_QUEUE can only be used as a field of a
+			structure, which is to be allocated from share memory;
+	--> PROC_QUEUE waitProcs: all the procs waiting to be granted lock on target
+		resource, in PGPROC list form, here PROC_QUEUE is the *head* of the list;
+		--> PROC_QUEUE is a wrapper for SHM_QUEUE with an additional field to
+			record the size of the list;
+	--> int requested[MAX_LOCKMODES]: record numbers of locks requested for each
+		lock mode, including the granted locks;
+	--> int nRequested: total number together;
+	--> int granted[MAX_LOCKMODES]: record numbers of locks waiting for each
+		lock mode;
+	--> int nGranted: total number together;
+	--> each process/transaction would be counted only once for multiple grabs
+		on a particular lock(LOCALLOCK works here);
+
+==> Actually, there is no need for LOCKPROC structure if no deadlock detection,
+	simply use PROC_QUEUE for PGPROC is OK;
+
+	Each PROCLOCK is a map of a PGPROC and a LOCK, where PGPROC can be process
+	granted the lock or the process waiting for the lock; PROCLOCKTAG is combination
+	of PROC and LOCK;
+
+	XXX A question is: why PROCLOCKTAG can contain pointer field? The answer in the
+	comments is: We can use pointers here because the PROCLOCKTAG need only be
+	unique for the lifespan of the PROCLOCK, and it will never outlive the lock
+	or the proc. This is not persuasive, provide that one process inserts a
+	PROCLOCKTAG using its address of a LOCK, then another process is iterating
+	the ProcLockHash and reading the LOCK pointer in the PROCLOCKTAG, the LOCK
+	pointer does not mean anything;
+
+	Fields:
+	--> PROCLOCKTAG tag
+	--> LOCKMASK holdMask: lock modes granted of the specific lock in tag;
+	--> LOCKMASK releaseMask: temp workspace for LockReleaseAll();
+	--> SHM_QUEUE lockLink and SHM_QUEUE procLink: add this structure into
+		linked lists; that is to say, *for each* PGPROC, there would be a linked
+		list of PROCLOCK recording the lock *granted or waiting for*, i.e, myProcLocks
+		field in PGPROC; and for each LOCK, there would be a linked list of
+		PROCLOCK recording the processes which *has acquired* the lock, i.e,
+		procLocks field in LOCK structure; these two SHM_QUEUE is just an
+		*element* in a list, not a head;
+	----------------------------------------------------------------------------------
+	GP-specific fields for resource queue
+	----------------------------------------------------------------------------------
+	--> int nLocks: total number of times this lock is acquired by this process.
+		XXX Should be moved to LOCALLOCK? provide that share memory lock only counts
+		once for each process/transaction.
+	--> SHM_QUEUE portalLinks: *head*, since a process would acquire a single resource
+		queue lock several times, each time with a ResPortalIncrement structure,
+		we link these increments into a list, and the head is put here;
+		
+		XXX whether nLocks equals to the length of this list? check the
+		implementation; should be moved to LOCALLOCK also? should restrict these
+		two fields to specific resource queue lock to reduce share memory usage?
+
+		--> All ResPortalIncrements are in share memory as a hash table, with
+			global variable ResPortalIncrementHash points to it; the unique
+			identifier for a ResPortalIncrement is pid and portal id, that is to
+			say, for each process, there would be a list of ResPortalIncrements,
+			with head in PROCLOCK, and each element is for a portal, ordinarily,
+			there would be only one element for a process, if there are extended
+			queries, then more than one elements would be in the list;
