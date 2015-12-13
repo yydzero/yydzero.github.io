@@ -1,3 +1,12 @@
+---
+layout: post
+title:  "LOCK memo #1"
+author: Kenan Yao
+date:   2015-12-12 18:00:00
+categories: lock
+published: false
+---
+
 ==> LockMethodData can be compared as electronic lock or traditional lock, it
 	specifies:
 	--> the meaning of each lock mode, that is to say, which lock mode
@@ -16,7 +25,7 @@
 	is that USER_LOCKMETHOD is not transactional;
 
 ==> We can only discuss lock mode on the context of a specific lock target;
-	there are three classes of lock target:
+	there are three classes of lock target(internally more than 3):
 	--> table level: 8 lock levels/modes(these 8 are all for table level, though
 					 name has *row* literally; the names are just historical,
 					 the core idea is the level and conflict relationships)
