@@ -4,7 +4,7 @@ title:  "LOCK memo #2"
 author: Kenan Yao
 date:   2015-12-13 18:00:00
 categories: lock
-published: false
+published: true
 ---
 
 ==> LOCKTAG uniquely identifies a resource to be locked;
