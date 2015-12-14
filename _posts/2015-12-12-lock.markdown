@@ -6,7 +6,7 @@ date:   2015-12-12 18:00:00
 categories: lock
 published: true
 ---
-
+```
 ==> LockMethodData can be compared as electronic lock or traditional lock, it
 	specifies:
 	--> the meaning of each lock mode, that is to say, which lock mode
@@ -66,3 +66,4 @@ published: true
 	The best defense against deadlocks is generally to avoid them by being
 	certain that all applications using a database acquire locks on multiple
 	objects in a consistent order.
+```
