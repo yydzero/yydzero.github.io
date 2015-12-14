@@ -7,62 +7,62 @@ categories: lock
 published: true
 ---
 
-	==> LockMethodData can be compared as electronic lock or traditional lock, it
-		specifies:
-		--> the meaning of each lock mode, that is to say, which lock mode
-		conflicts with other lock modes;
-		--> whether this kind of lock is transactional, that is to say, whether
-		released at transaction end;
-	
-		3 important fields of this structure:
-		--> numLockModes
-		--> transactional
-		--> conflictTab: this is an array of bitmask, each bitmask records the
-		conflicts of one lockmode with other lockmodes;
-	
-		All LockMethodData instances are hard coded in lock.c, 3 in total, stored in
-		const array *LockMethods*, and these 3 are almost the same, the only difference
-		is that USER_LOCKMETHOD is not transactional;
-	
-	==> We can only discuss lock mode on the context of a specific lock target;
-		there are three classes of lock target(internally more than 3):
-		--> table level: 8 lock levels/modes(these 8 are all for table level, though
-						 name has *row* literally; the names are just historical,
-						 the core idea is the level and conflict relationships)
-		--> row level: 2 modes, exclusive and share
-		--> page level: 2 modes, exclusive and share
-	
-		Basically, one command may acquire all these 3 classes of locks, for
-		example, SELECT FOR UPDATE would first acquire ROW SHARE mode lock on the
-		table, and then acquire exclusive mode lock on row level for that logical
-		row(didn't trace for page level);
-	
-		Lock should be talked in the scope of transaction, a transaction would never
-		conflict itself; Once the locks are acquired, normally they are released at
-		the end of transaction; But if a lock is acquired after establishing a
-		savepoint, the lock is released immediately if the savepoint is rolled back
-		to. The same applys for locks acquired within a PL/pgSQL exception block:
-		an error escape from the block releases locks acquired within it.
-		One exception here: page level locks are released immediately after a
-		physical row is read or written. 
-	
-		Row level locks do not affect read, they block only writers to the
-		same row. That is to say, read does not need to acqure row level locks, and
-		write specific rows would acquire exclusive row level locks; that is where
-		MVCC works, and why "read does not block write, write does not block read".
-		A question is: why we need row level share lock if read does not need to
-		acquire row level lock at all? just for SQL level feature(SELECT FOR SHARE)?
-	
-		Reference: http://www.postgresql.org/docs/8.4/static/explicit-locking.html
-	
-	==> PostgreSQL automatically detects deadlock and resolves them by
-		aborting one of the transactions involved, allowing the other(s) to complete.
-		(Exactly which transaction will be aborted is difficult to predict and should
-	 	not be relied upon.)
-	
-		Deadlocks can occur on both table level and row level(usally page level is
-		not included in discussion, so I am not sure)
-	
-		The best defense against deadlocks is generally to avoid them by being
-		certain that all applications using a database acquire locks on multiple
-		objects in a consistent order.
+1. LockMethodData can be compared as electronic lock or traditional lock, it
+specifies:
+* the meaning of each lock mode, that is to say, which lock mode
+conflicts with other lock modes;
+* whether this kind of lock is transactional, that is to say, whether
+released at transaction end;
+
+3 important fields of this structure:
+* numLockModes
+* transactional
+* conflictTab: this is an array of bitmask, each bitmask records the
+conflicts of one lockmode with other lockmodes;
+
+All LockMethodData instances are hard coded in lock.c, 3 in total, stored in
+const array **LockMethods**, and these 3 are almost the same, the only difference
+is that USER\_LOCKMETHOD is not transactional;
+
+2. We can only discuss lock mode on the context of a specific lock target;
+there are three classes of lock target(internally more than 3):
+* table level: 8 lock levels/modes(these 8 are all for table level, though
+name has **row** literally; the names are just historical, the core idea is
+the level and conflict relationships)
+* row level: 2 modes, exclusive and share
+* page level: 2 modes, exclusive and share
+
+Basically, one command may acquire all these 3 classes of locks, for
+example, SELECT FOR UPDATE would first acquire ROW SHARE mode lock on the
+table, and then acquire exclusive mode lock on row level for that logical
+row(didn't trace for page level);
+
+Lock should be talked in the scope of transaction, a transaction would never
+conflict itself; Once the locks are acquired, normally they are released at
+the end of transaction; But if a lock is acquired after establishing a
+savepoint, the lock is released immediately if the savepoint is rolled back
+to. The same applys for locks acquired within a PL/pgSQL exception block:
+an error escape from the block releases locks acquired within it.
+One exception here: page level locks are released immediately after a
+physical row is read or written. 
+
+Row level locks do not affect read, they block only writers to the
+same row. That is to say, read does not need to acqure row level locks, and
+write specific rows would acquire exclusive row level locks; that is where
+MVCC works, and why "read does not block write, write does not block read".
+A question is: why we need row level share lock if read does not need to
+acquire row level lock at all? just for SQL level feature(SELECT FOR SHARE)?
+
+Reference: http://www.postgresql.org/docs/8.4/static/explicit-locking.html
+
+3. PostgreSQL automatically detects deadlock and resolves them by
+aborting one of the transactions involved, allowing the other(s) to complete.
+(Exactly which transaction will be aborted is difficult to predict and should
+not be relied upon.)
+
+Deadlocks can occur on both table level and row level(usally page level is
+not included in discussion, so I am not sure)
+
+The best defense against deadlocks is generally to avoid them by being
+certain that all applications using a database acquire locks on multiple
+objects in a consistent order.
