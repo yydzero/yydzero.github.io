@@ -11,3 +11,15 @@
 ==> LOCK, PROCLOCK, and LOCALLOCK are organized into hash table
 	LockMethodLockHash, LockMethodProcLockHash and LockMethodLocalHash in share
 	memory;
+
+==> Function InitLocks is called in postmaster startup, it creates those 3 hash
+	tables; there is an assumption of average 2 holders per lock;
+
+==> A question of LockAcquire is: the order of insert/modify LOCALLOCK/PROCLOCK
+	and LOCK; should them be atomic?
+	First insert an entry in LOCALLOCK even if LOCK conflits are not checked
+	yet;
+
+==> LockMethodLockHash is logically divided into several partitions using hash,
+	so when reading/writing a LOCK entry, use corresponding partition's LWLockId
+	for concurrency protection;
