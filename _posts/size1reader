@@ -1,0 +1,38 @@
+insert into tbl values(1,1), (2,2);
+
+For this kind of query, the plan would have 2 slices, root slice would be
+primary writer, and slice 1 would be 1-size primary reader. The logic is that
+using an random segment to start a reader QE to do the VALUE SCAN, and
+redistribute the tuples to specific segments. Primary writer would receive these
+tuples and do the insert. In this query, we use the 1-size primary reader.
+
+insert into tbl values (1,1);
+
+For this kind of query, the plan has only one slice, would be allocated as
+primary writer, the left tree node is Result.
+
+select id from tbl where value in (select id from tbl2 where value = 2);
+
+insert into tbl2 select * from tbl where id = 1;
+Oops, planner does not recognise the direct dispatch here.
+
+select * from tbl where id = 1; would use primary writer gang, but dispatch to
+only one segment.
+
+See how the direct dispatch works in planner.
+{
+	1, correlated subquery which has distributed relation disabled direct
+	dispatch now;
+	2, cdbparallelize->apply_motion would do the direct dispatch decision in planner;
+	3, currently, direct dispatch is disabled if it is multi-slice plan, larger
+	than 2 slices;
+	4, insert would not compute direct dispatch, except it is INSERT INTO
+	VALUES, while this matters nothing for out feature; update delete would;
+	5, currently, planner would recognize lower slice's direct dispatch, for
+	example delete from tbl2 where value in (select value from tbl where id =
+	1);
+}
+
+NOTE: cursor would not use writer gang, and it can be built because cursor can
+only be used in explicit transaction, and BEGIN would build a writer gang first,
+thus when allocate reader gang for CURSOR, a writer gang has already existed;

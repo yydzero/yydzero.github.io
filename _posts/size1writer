@@ -1,0 +1,6 @@
+1, one session can only have one writer on each segment, thus when introducing
+1-size writer, we have to gurantee the primary writer has been destroyed; (we
+can see whether GPDB would crash if we do not destroy the primary writer gang)
+
+2, when plan has several slices, each slice must has the same content id if we
+want to allocate 1-size writer gang.

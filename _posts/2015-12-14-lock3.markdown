@@ -1,0 +1,13 @@
+==> LOCALLOCK is mainly for recording the number of times the lock has been
+	acquired, since a process/transaction would be counted only once in share
+	memory lock; the numbers are tracked per ResourceOwner;
+	Main fields:
+	--> LOCALLOCKTAG tag: combination of LOCKTAG and lockmode;
+	--> LOCK *lock: corresponding lock in share memory; LOCALLOCK in process
+		private, so we can use pointer directly;
+	--> PROCLOCK *proclock: corresponding proclock in share memory;
+	--> int64 nLocks; number of times acquired;
+
+==> LOCK, PROCLOCK, and LOCALLOCK are organized into hash table
+	LockMethodLockHash, LockMethodProcLockHash and LockMethodLocalHash in share
+	memory;
