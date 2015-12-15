@@ -13,13 +13,62 @@
 	memory;
 
 ==> Function InitLocks is called in postmaster startup, it creates those 3 hash
-	tables; there is an assumption of average 2 holders per lock;
+	tables; there is an assumption of average 2 holders per lock(estimated number of
+	PROCLOCK);
 
 ==> A question of LockAcquire is: the order of insert/modify LOCALLOCK/PROCLOCK
 	and LOCK; should them be atomic?
-	First insert an entry in LOCALLOCK even if LOCK conflits are not checked
-	yet;
+	Answer: yes, they are atomic, protected by LWLockAcquire(partitionLockId);
+	First, allocate entry in LOCALLOCK, LOCK and PROCLOCK, not modify the entry,
+	then after check conflicts, call GrantLock to modify LOCK and PROCLOCK, and
+	GrantLocalLock to modify LOCALLOCK;
+	--> the concurrency is protected by LWLockAcquire(partionLockId);
+	--> there is no ereport in GrantLock and GrantLocalLock, so cannot longjump
+		to escape the atomic protection;
+	--> there is no CHECK_FOR_INTERRUPTS in function LockAcquire, so no
+		interrupts;
 
 ==> LockMethodLockHash is logically divided into several partitions using hash,
 	so when reading/writing a LOCK entry, use corresponding partition's LWLockId
 	for concurrency protection;
+
+==> global variable lockHolderProcPtr is a pointer to a PGPROC which is
+	responsible for locking stuff, i.e, for utility mode and QD, it's itself, for
+	QE on segments, it's the writer's PGPROC; However, reader can indeed
+	possibly acquire locks, when writer is not found after 5 attempts(lock.c:595);
+	XXX if reader gang acquired locks, is there any risk we do not release them?
+
+==> hash\_search would first calculate the hash value of the key,
+	hash_search_with_hash_value would directly use the hash_value param and then
+	check the match of the key;
+	
+	LOCALLOCK->hashcode is the hash value of the LOCKTAG in LOCALLOCKTAG, not
+	LOCALLOCKTAG itself; 
+	
+	There is a function pointer in struct HTAB, which specifies the memory allocator
+	to be used in hash table, when action is HASH_ENTER_NULL, the pointer cannot be palloc
+	related function;
+
+==> XXX why use MyProc instead of lockHolderProcPtr in PROCLOCKTAG?(lock.c:682)
+	
+	When no finding in LOCALLOCK, while PROCLOCK shows the LOCK has been
+	acquired, why we still go on acquiring the lock?!! something is corrupted,
+	either LOCALLOCK or PROCLOCK, why we do not report error?(lock.c:805)
+	check the master log from GE for this kind of LOG(lock.c:811)
+	The assumption there is the share memory is OK, while the LOCALLOCK is
+	corrupted;
+
+==> GrantLock is to modify the LOCK and PROCLOCK structures' fields(number and
+	lockmask) to reflect that the lock has been granted to the process;
+
+==> LockCheckConflicts would count the lock modes already held by this process,
+	and the processes has same mppSessionId, so it's OK for reader QE to acquire
+	locks, XXX but the numbers may have problem here, though the PROCMASK and
+	conflict relationship is OK;
+
+==> WaitOnLock
+	XXX why in ProcSleep we should check LockCheckConflicts again? the
+	partitionLockId is always held by us(proc.c:974).
+
+	ProcLockWakeup is called when a lock is released by UnGrantLock or *a prior
+	waiter is aborted*;

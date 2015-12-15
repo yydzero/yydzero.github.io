@@ -54,7 +54,7 @@ published: false
 	--> each process/transaction would be counted only once for multiple grabs
 		on a particular lock(LOCALLOCK works here);
 
-==> Actually, there is no need for LOCKPROC structure if no deadlock detection,
+==> Actually, there is no need for PROCLOCK structure if no deadlock detection,
 	simply use PROC_QUEUE for PGPROC is OK;
 
 	Each PROCLOCK is a map of a PGPROC and a LOCK, where PGPROC can be process
@@ -71,7 +71,8 @@ published: false
 
 	Fields:
 	--> PROCLOCKTAG tag
-	--> LOCKMASK holdMask: lock modes granted of the specific lock in tag;
+	--> LOCKMASK holdMask: lock modes granted of the specific lock in tag for
+		this process;
 	--> LOCKMASK releaseMask: temp workspace for LockReleaseAll();
 	--> SHM_QUEUE lockLink and SHM_QUEUE procLink: add this structure into
 		linked lists; that is to say, *for each* PGPROC, there would be a linked
