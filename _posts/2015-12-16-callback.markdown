@@ -1,0 +1,3 @@
+==> XXX should we remove gp\_is\_callback?
+==> XXX why we need LWLockAcquire the partition LWLock again in ProcSleep?
+==> XXX what is lockHolderProcPtr used for?
