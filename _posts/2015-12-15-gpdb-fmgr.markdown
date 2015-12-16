@@ -1,0 +1,8 @@
+---
+layout: post
+title:  "GPDB function manager"
+author: 姚延栋
+date:   2015-12-12 10:20:43
+categories: gpdb fmgr
+published: false
+---

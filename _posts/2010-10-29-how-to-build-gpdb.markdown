@@ -21,6 +21,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     $ sudo yum install perl-ExtUtils-Embed  # If enable perl
     $ sudo yum install libxml2-devel        # If enable XML support
     $ sudo yum install openldap-devel       # If enable LDAP
+    $ sudo yum install pam pam-devel        # If enable PAM
 
     $ sudo yum install perl-Env             # If need installcheck-good
 
@@ -33,7 +34,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 
 假定安装到 $HOME/gpdb.master 目录下
 
-    $ ./configure --with-openssl --with-python --enable-debug --enable-depend --prefix=$HOME/gpdb.master
+    $ ./configure --prefix=/home/gpadmin/build/gpdb.master --with-gssapi --with-pgport=5432 --with-libedit-preferred --with-perl --with-python --with-openssl --with-pam --with-krb5 --with-ldap --with-libxml --enable-cassert --enable-debug --enable-testutils --enable-debugbreak --enable-depend
 
     $ make
 
