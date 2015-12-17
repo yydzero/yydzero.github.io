@@ -158,6 +158,13 @@
 		PGSemaphoreLock();
 	} while(MyProc->waitStatus == STATUS_WAITING)
 	to check we indeedly get the lock;
+	
+	After exiting the do while loop, the MyProc->waitStatus can be STATUS_OK or
+	STATUS_ERROR when deadlock detected and RemoveFromWaitQueue called in
+	handle_sig_alarm->CheckDeadLock
 
 ==> XXX in ProcSleep, there is no need to re-acquire the partition LWLock again,
 	since the interrupts is delayed to CHECK_FOR_INTERRUPTS;
+
+==> Auxiliary processes are not expected to acquire regular locks, but they
+	would do for LWLock, thus PGPROC is necessary;
