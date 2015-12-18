@@ -5,3 +5,7 @@
 	dumpSnapshot is called, is lockHolderProcPtr already set?
 
 	ProcArrayAdd/ProcArrayRemove
+	when is the PGPROC put into procArray? is LockAcquire called before putting
+	it in?
+
+	ProcArrayAdd->InitProcessPhase2
