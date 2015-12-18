@@ -1,0 +1,64 @@
+==> Each backend has a PGPROC structure in shared memory; if a process exits, the
+	PGPROC structure would be recollected into a list of unused PGPROC;
+
+	Note that, for each prepared transaction, there would be a dummy PGPROC, and
+	are *also* put into variable procArray;
+	differences between this and the previous PGPROC:
+	--> pid == 0;
+	--> semaphore and lock related fields not used;
+	--> myProcLocks[] is valid;
+
+==> Reasons for using Latch to interrupt sleep():
+	--> on some platforms, an incoming signal does not interrupt sleep;
+	--> even if signal can interrupt sleep, there is a race condition when the
+	signal arrives just before entering sleep, that's why pselect is invented,
+	but pselect is not portable enough;
+
+==> Local latch is used to wait for a signal to arrive, signal handler often
+	call SetLatch to activate the process; shared Latch resides in shared
+	memory, and must be associated with a process by OwnLatch, only this process
+	can wait on this Latch, while all other processes can set it;
+
+==> Use pattern of Latch:
+	for (;;)
+	{
+		ResetLatch();
+		if (work to do)
+		{
+			Do stuff;
+		}
+		WaitLatch();
+	}
+
+	Important thing is: ResetLatch must be put *before* the if check, whether like
+	above, or put it after WaitLatch, the principle is if a SetLatch is called,
+	at least one work check must be done after the call;
+
+	For the set side, SetLatch must be called *after* modifying the global flag to
+	indicate there are works to do;
+
+	Each PGPROC structure has a Latch called procLatch, it is encouraged to use
+	this Latch for inter-process signaling, instead of an ad-hoc shared Latch,
+	because signal handler has been implemented to support this protocol already;
+
+	LWLock is required when trying to access shared Latch;
+
+	The core idea of Latch is to use self-pipe write to reliably
+	interrupt select() instead of signal to interrupt select() or sleep();
+
+==> Latch is one of the inter-process communication method, another one is
+	semaphore, but semaphore resource is limited; each PGPROC has a semaphore
+	and a Latch;
+
+==> An update in a transaction would acquire a tuple lock, here tuple lock is a
+	virtual concept, it is not a lock for the tuple in the buffer, that is for
+	buffer lock, this tuple lock would be released after the update command,
+	while another update in another transaction would first acquire the tuple
+	lock, then hang in the update command waiting for the transation lock of
+	the first transaction, the transaction lock is identified by tracking the
+	MVCC chain of the tuple header to the end of the list; there are 3 locks in
+	this procedure, tuple lock is to guarantee only one MVCC chain exists,
+	transaction lock is to guarantee the simple chain is valid, since
+	transaction may be aborted, and the buffer lock is to guarantee the
+	consistency between concurrent read and write tuple header; concurrent write
+	and write is avoided by tuple lock; <XXX details needed to confirm>
