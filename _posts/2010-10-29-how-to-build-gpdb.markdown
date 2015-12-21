@@ -99,6 +99,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 ### 6. 可能问题
 
 * 如果你的系统上已经安装了 PostgreSQL，有可能会有冲突。还没来得及看问题原因
+** 这个问题已经解决，GPDB 默认安装路径为 /usr/local/gpsql, 或者可以自定义安装路径，不和 pg 安装目录冲突既可。
 * GPDB github 主页上有怎么样初始化 demo cluster 的步骤，不过这个步骤假定安装 3 个primary，3 个mirror，一般笔记本上吃不消。
 如果机器够强大，使用 demo cluster 更简单些。
 * 如果有什么问题，欢迎使用 GPDB 的邮件列表报告bug： greenplum.org

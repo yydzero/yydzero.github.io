@@ -1,0 +1,32 @@
+---
+layout: post
+title:  "VIM Tips"
+author: 姚延栋
+date:   2015-12-19 23:20:43
+categories: vim
+published: true
+---
+
+### 根据某个数字字段排序
+
+文件内容
+
+    psql:02. Display all database available ... [2015-12-19 13:42:06 - 2015-12-19 13:42:07] ok ...  0.18 sec
+    psql:03. Display all table ... [2015-12-19 13:42:07 - 2015-12-19 13:42:07] ok ...  0.11 sec
+    psql:04. Display all sequences and views ... [2015-12-19 13:42:07 - 2015-12-19 13:42:07] ok ...  0.12 sec
+    psql:07.pglanguage ... [2015-12-19 13:42:08 - 2015-12-19 13:42:08] ok ...  0.08 sec
+    psql:10.View all external table ... [2015-12-19 13:42:08 - 2015-12-19 13:42:08] ok ...  0.09 sec
+
+下面命令根据运行时间排序，即 ok 后面的数字。
+
+    %sort n /.*ok \.\.\./
+
+    sort! n /.*ok \.\.\./   倒序
+
+    cat a.log | sed  's/.*(\(.*\)).*/\1/' |sort -n -r
+
+### 在 VIM 中直接对当前文件运行外部命令
+
+下面命令不用退出 VIM 既可以实现P4编辑当前文件。
+
+    :! p4 edit %
