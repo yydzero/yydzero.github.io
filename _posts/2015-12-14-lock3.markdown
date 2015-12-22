@@ -142,6 +142,7 @@
 ==> LockWaitCancel would be called in cancel/die handler;
 	XXX there is a comment in LockWaitCancel, saying "Don't try to cancel
 	resource locks";
+	XXX is there problems resource lock uses same awaitedLock as regurlar locks?
 
 	LockWaitCancel is responsible for keep LOCALLOCK valid in race condition
 	when we are granted the lock and not able to record it in LOCALLOCK because
