@@ -15,7 +15,7 @@
 ==> LockReleaseAll would first modify LOCALLOCK entries, then modify LOCK and
 	PROCLOCK partition by partition, this can reduce the LWLockAcquire cost;
 
-==> AtPrepare\_Locks would tranverse the LOCALLOCK, and record the locks held
+==> AtPrepare\_Locks would traverse the LOCALLOCK, and record the locks held
 	into a XLogRecData list which resides in memory context; this function is
 	called in PrepareTransaction;
 
@@ -24,3 +24,16 @@
 	transaction; hence all the corresponding entries in LOCALLOCK would be
 	removed; this is done by function PostPrepare_Locks, which is called in
 	function PrepareTransaction;
+
+	PostPrepare_Locks is quite similar as LockReleaseAll: first go through
+	LOCALLOCK and mark releaseMask of proclock, then clean up LOCK and PROCLOCK;
+
+==> All the temporary objects are put under a temp namespace;
+
+==> hash\_seq\_search a HTAB(dynahash.c) can handle the case when HTAB is
+	inserted during the traversal, however, whether the newly appended entries would
+	be traversed or not should be double checked;
+
+==> GetLockStatusData is used by user level function such as pg\_locks, one
+	thing is that we should grab all the partition lock first before we copy any
+	data, this is to guarantee we have a self-consistent view of the state;
