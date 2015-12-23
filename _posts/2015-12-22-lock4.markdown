@@ -37,3 +37,9 @@
 ==> GetLockStatusData is used by user level function such as pg\_locks, one
 	thing is that we should grab all the partition lock first before we copy any
 	data, this is to guarantee we have a self-consistent view of the state;
+
+==> lock\_twophase\_recover is registered as a callback, which would be called
+	in RecoverPreparedTransactions;
+
+	Similarly, lock_twophase_postcommit would be called in
+	FinishPreparedTransaction;
