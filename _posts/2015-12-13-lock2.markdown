@@ -92,8 +92,14 @@ published: false
 		we link these increments into a list, and the head is put here;
 		
 		XXX whether nLocks equals to the length of this list? check the
-		implementation; should be moved to LOCALLOCK also? should restrict these
-		two fields to specific resource queue lock to reduce share memory usage?
+		implementation;
+		XXX should restrict these two fields to specific resource queue lock
+		to reduce share memory usage?
+		
+		Should be moved to LOCALLOCK also?
+		Answer: cannot be moved into LOCALLOCK, because this information should
+		be exposed to other processes, so must reside in share memory, though it
+		violates the design of PROCLOCK a little bit;
 
 		--> All ResPortalIncrements are in share memory as a hash table, with
 			global variable ResPortalIncrementHash points to it; the unique

@@ -25,6 +25,9 @@
 	removed; this is done by function PostPrepare_Locks, which is called in
 	function PrepareTransaction;
 
+	Note that, for a dummy PGPROC of a prepared transaction, there is no
+	LOCALLOCK, it is in another form as TwoPhaseLockRecord;
+
 	PostPrepare_Locks is quite similar as LockReleaseAll: first go through
 	LOCALLOCK and mark releaseMask of proclock, then clean up LOCK and PROCLOCK;
 
@@ -39,7 +42,21 @@
 	data, this is to guarantee we have a self-consistent view of the state;
 
 ==> lock\_twophase\_recover is registered as a callback, which would be called
-	in RecoverPreparedTransactions;
+	in RecoverPreparedTransactions; it is quite similar as LockAcquire, except
+	that it does not check the conflicts, and grant the lock any how;
+
+	Differences:
+	--> locallock does not included in this function;
+	--> the proc in PROCLOCK is the dummy proc for prepared transaction;
+	--> no conflicts check; XXX any problems? in what situation this function is called?
 
 	Similarly, lock_twophase_postcommit would be called in
-	FinishPreparedTransaction;
+	FinishPreparedTransaction; it is quite like LockRelease, differences:
+	--> no locallock involved;
+	--> dummy proc in PROCLOCK;
+
+	lock_twophase_postabort is just exactly same as lock_twophase_postcommit, so
+	if a COMMIT PREPARE fails, then the locks of the dummy PGPROC would be
+	released, so lock_twophase_recover should re-acquire them later;
+
+	XXX Are TwoPhaseLockRecords flushed to disk?
