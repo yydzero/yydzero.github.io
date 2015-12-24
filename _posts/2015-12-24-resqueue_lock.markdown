@@ -52,13 +52,42 @@
 ==> ResProcLockRemoveSelfAndWakeup would traverse the wait list of a lock, and
 	then get the waiting portal(since only one portal in a process can be
 	waiting, so it is OK here), and its ResPortalIncrement, then compare with
-	the available quota;
+	the available quota(ResLockCheckLimit);
 
 	Note that, the process itself can also be on the wait list, when the
 	deadlock is triggered by itself; when it is the case, simply remove itself from
 	the wait list and examine the next one;
 
-	The wakeup algorithm here is a simple FIFO; XXX for a non-statement count
-	resource queue(i.e, cost based), there may be quota left while the tail
-	enquiry is blocked and less than the quota, if no re-ordering is
-	implemented.
+	The wakeup algorithm here is a simple FIFO; these functions are normally
+	called together:
+	--> ResLockCheckLimit
+		Does not check the STATUS_ERROR return value here in
+		ResProcLockRemoveSelfAndWakeup, because a STATUS_ERROR PGPROC cannot be
+		inserted into the waiting list, which is controlled in ResLockAcquire;
+	--> ResGrantLock
+	--> ResLockUpdateLimit
+	--> ResProcWakeup(same as ProcWakeup, remove itself from lock's wait list)
+
+	XXX ResPortalIncrement is not removed from portalLinks of PROCLOCK, what is
+	this used for?
+
+==> The overcommit of ResQueueData is for cost only, which means that you can
+	exceed the cost limit if there is no other quota enquiry.(ResLockCheckLimit)
+
+==> Why we need LOCK and PROCLOCK in resource management, seems only the
+	ResQueueHash is enough?
+
+	Answer: LOCK and PROCLOCK is used for the wake up mechanism, and the
+	deadlock detection mechanism;
+
+==> UnGrantLock would check the conflicts of ungranted lock mode with the
+	waitMask, to see whether wake up of the waiting list is needed; while for
+	ResUnGrantLock, wake up is alwayls needed;
+
+==> The queueId and portalId in PGPROC is firstly set properly during process
+	initialization, regardless of the role is super user or not; then after
+	returning from ResLockAcquire, if result is LOCKACQUIRE_NOT_AVAIL, then we
+	should reset these two fields to zero, to indicate that this query is not
+	managed by resource queue;(resqueue.c:319)
+
+==> ResIncrementAdd builds the ResPortalIncrement in share memory;

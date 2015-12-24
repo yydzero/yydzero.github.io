@@ -85,16 +85,24 @@ published: false
 	GP-specific fields for resource queue
 	----------------------------------------------------------------------------------
 	--> int nLocks: total number of times this lock is acquired by this process.
-		XXX Should be moved to LOCALLOCK? provide that share memory lock only counts
+		Should be moved to LOCALLOCK? provide that share memory lock only counts
 		once for each process/transaction.
+		Answer: no, LOCALLOCK of resource lock is almost not used, and nLocks
+		should be in share memory as it may be referenced by other backends;
+
 	--> SHM_QUEUE portalLinks: *head*, since a process would acquire a single resource
 		queue lock several times, each time with a ResPortalIncrement structure,
 		we link these increments into a list, and the head is put here;
 		
-		XXX whether nLocks equals to the length of this list? check the
-		implementation;
-		XXX should restrict these two fields to specific resource queue lock
+		Whether nLocks equals to the length of this list? 
+		Answer: these two has no relationship at all! nLocks means the number of
+		portals which have acquired the resource lock, while the length of the
+		portalLinks means the number of portals waiting to get the resource
+		lock;
+
+		TODO: Should restrict these two fields to specific resource queue lock
 		to reduce share memory usage?
+		Answer: not that urgent to do this currently;
 		
 		Should be moved to LOCALLOCK also?
 		Answer: cannot be moved into LOCALLOCK, because this information should
