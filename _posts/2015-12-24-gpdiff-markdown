@@ -4,7 +4,7 @@ title:  "gpdiff"
 author: 姚延栋
 date:   2015-12-19 23:20:43
 categories: gpdiff atmsort
-published: false
+published: true
 ---
 
 GPDB 的测试框架延续了 PostgreSQL 测试的核心思路，即提供一个 SQL 文件，运行它，并将结果和预期的结果对比，如果一样，则通过，否则失败。
