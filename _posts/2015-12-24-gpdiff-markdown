@@ -1,0 +1,160 @@
+---
+layout: post
+title:  "gpdiff"
+author: 姚延栋
+date:   2015-12-19 23:20:43
+categories: gpdiff atmsort
+published: false
+---
+
+GPDB 的测试框架延续了 PostgreSQL 测试的核心思路，即提供一个 SQL 文件，运行它，并将结果和预期的结果对比，如果一样，则通过，否则失败。
+
+然而实际的 SQL 结果输出包含很多对验证结果无关紧要的东西，譬如某些提示用信息。GPDB 提供了 gpdiff.pl 脚本来帮助测试程序忽略掉某些无关紧要的字符。
+
+
+### gpdiff.pl
+
+gpdiff.pl 对文件和目录进行预处理 (由 atmsort.pm 完成），然后对预处理的文件进行 diff 操作。
+
+预处理指令可以指定一个 init 文件
+
+
+### atmsort.pl
+
+atmsort.pl: A Test Mechanism Sort: sort the contents of SQL log files to aid diff comparison.
+
+atmsort.pl 从 STDIN 读入 SQL 日志文件，对所有不带 ORDER BY 的 SELECT 语句的查询输出进行排序，然后将结果写道 STDOUT。 query 必须是
+以 ';' 结尾。
+
+`atmsort.pl --help` 显示更多帮助信息。 代码里面doc更全。
+
+atmsort.pl -verbose 可以看到更详细的匹配过程。
+
+### atmsort.pm
+
+atmsort.pm 可以根据一些配置文件的规则对输入文件进行处理。 最常见的就是对匹配的行进行某些字符串替换。
+
+主要工作是由 atmsort::atmsort_bigloop() 实现的。
+
+对于匹配规则和匹配的处理，由 atmsort::match_then_subs() 完成。
+
+
+    $ cat out | atmsort.pl -init init_file
+
+atmsort.pm 会根据匹配规则进行字符串替换。下面是默认使用的规则。
+
+    $here_matchsubs = << 'EOF_matchsubs';
+
+    # some cleanup of greenplum-specific messages
+    m/\s+(\W)?(\W)?\(seg.*pid.*\)/
+    s/\s+(\W)?(\W)?\(seg.*pid.*\)//
+
+    m/WARNING:\s+foreign key constraint \".*\" will require costly sequential scans/
+    s/\".*\"/\"dummy key\"/
+
+    m/CONTEXT:.*\s+of this segment db input data/
+    s/\s+of this segment db input data//
+
+    # distributed transactions
+    m/(ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(\d+)/
+    s/gid.*/gid DUMMY/
+
+    m/(ERROR|WARNING|CONTEXT|NOTICE):.*DTM error.*gathered (\d+) results from cmd.*/
+    s/gathered.*results/gathered SOME_NUMBER_OF results/
+
+    # fix code locations eg "(xact.c:1458)" to "(xact.c:SOME_LINE)"
+    m/(ERROR|WARNING|CONTEXT|NOTICE):\s+Raise an error as directed by/
+    s/\.c\:\d+\)/\.c\:SOME_LINE\)/
+
+    m/(DETAIL|ERROR|WARNING|CONTEXT|NOTICE):\s+Raise .* for debug_dtm_action\s*\=\s* \d+/
+    s/\.c\:\d+\)/\.c\:SOME_LINE\)/
+
+    m/(ERROR|WARNING|CONTEXT|NOTICE):\s+Could not .* savepoint/
+    s/\.c\:\d+\)/\.c\:SOME_LINE\)/
+
+    m/(ERROR|WARNING|CONTEXT|NOTICE):.*connection.*failed.*(http|gpfdist)/
+    s/connection.*failed.*(http|gpfdist).*/connection failed dummy_protocol\:\/\/DUMMY_LOCATION/
+
+    # the EOF ends the HERE document
+    EOF_matchsubs
+
+
+每条匹配规则包含2行：第一行匹配的话，则执行第二行的替换。 使用如下代码执行替换.
+
+    $fn1 = sub {
+        my $ini = shift;
+        if ($ini =~ m/\s+(\W)?(\W)?\(seg.*pid.*\)/) {
+            $ini =~ s/\s+(\W)?(\W)?\(seg.*pid.*\)//;
+        }
+        return $ini;
+    }
+
+#### 匹配规则列表
+
+atmsor.pm 有默认的匹配规则，用户可以通过 init 文件，设置额外的规则。 规则保存在全局数组 `glob_match_then_sub_fnlist` 中。
+
+
+构建匹配规则数组：
+
+    sub init_match_subs() {
+        $glob_match_then_sub_fnlist = [];
+        _build_match_subs($here_matchsubs, "DEFAULT");
+    }
+
+对每一行，执行匹配规则数组中的每一个规则
+
+    sub match_then_subs {
+        my $ini = shift;
+
+        for my $ff (@{$glob_match_then_sub_fnlist}) {
+            my $fn1 = $ff->[0];
+            $ini = &$fn1($ini);
+        }
+
+        return $ini;
+    }
+
+### 主要的代码路径
+
+
+对每个要diff的文件对：
+
+    // 对 atmsort 进行初始化
+    atmsort::atmsort_init(%glob_atmsort_args);
+
+    // 对待 diff 的文件进行排序等预处理
+    atmsort::run($f1, $newf1);
+    print "$f1 - $newf1\n";
+    atmsort::run($f2, $newf2);
+    print "$f2 - $newf2\n";
+
+    // 调用 diff，比较2个处理后的文件。
+    my $outi =`$ATMDIFF $args`;
+
+
+atmsort 初始化
+
+    $ = atmsort::_build_match_ignores('^J...)
+    . = atmsort::init_matchignores()
+    . = atmsort::atmsort_init('VERBOSE', 1, 'INIT_FILES', ref(ARRAY))
+    $ = main::gpdiff_files('ans', 'out', undef)
+    $ = main::filefunc('ans', 'out')
+
+
+对第一个文件进行规则替换、排序等处理：
+
+    $ = atmsort::match_then_subs('         0 | 833558674^J')
+    . = atmsort::atmsort_bigloop(ref(GLOB), ref(GLOB))
+    . = atmsort::run_fhs(ref(GLOB), ref(GLOB))
+    . = atmsort::run('ans', '/var/tmp/tmp.0.5prd5R')                // 对 ans 文件进行sorting处理
+    $ = main::gpdiff_files('ans', 'out', undef)
+    $ = main::filefunc('ans', 'out')
+
+
+对第二个文件进行规则替换、排序等处理：
+    $ = atmsort::match_then_subs('         0 | 771224416^J')
+    . = atmsort::atmsort_bigloop(ref(GLOB), ref(GLOB))
+    . = atmsort::run_fhs(ref(GLOB), ref(GLOB))
+    . = atmsort::run('out', '/var/tmp/tmp.1.2WmpDA')                // 对 out 文件进行sorting处理
+    $ = main::gpdiff_files('ans', 'out', undef)
+    $ = main::filefunc('ans', 'out')
