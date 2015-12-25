@@ -14,10 +14,66 @@ GPDB 的测试框架延续了 PostgreSQL 测试的核心思路，即提供一个
 
 ### gpdiff.pl
 
-gpdiff.pl 对文件和目录进行预处理 (由 atmsort.pm 完成），然后对预处理的文件进行 diff 操作。
+gpdiff.pl 对文件和目录进行预处理，然后对预处理后的文件进行 diff 操作。
 
-预处理指令可以指定一个 init 文件
+预处理由 atmsort.pm 完成， 主要是解决 SELECT 结果的无序问题和字符串替换。
 
+除了默认的预处理规则外，还可以指定一个包含规则的 init 文件作为参数。通过init 文件可对结果中的无关紧要的字符串进行替换，例如忽略掉进程id号等。
+
+
+    Usage:
+        gpdiff.pl [options] logfile [logfile...]
+
+        Options:
+
+        Normally, gpdiff takes the standard "diff" options and passes them
+        directly to the diff program. Try `diff --help' for more information on
+        the standard options. The following options are specific to gpdiff:
+
+            -help                 brief help message
+            -man                  full documentation
+            -version              print gpdiff version and underlying diff version
+                -verbose                          print verbose info
+            -gpd_ignore_headers   ignore header lines in query output
+            -gpd_ignore_plans     ignore explain plan content in input files
+            -gpd_init <file>      load initialization file
+
+    Options:
+        -help
+                    Print a brief help message and exits.
+
+        -man
+                    Prints the manual page and exits.
+
+        -version
+                    Prints the gpdiff version and underlying diff version
+
+        -verbose
+                    Prints verbose information.
+
+        -gpd_ignore_headers
+                gpdiff/atmsort expect Postgresql "psql-style" output for SELECT
+                statements, with a two line header composed of the column names,
+                separated by vertical bars (|), and a "separator" line of dashes
+                and pluses beneath, followed by the row output. The psql utility
+                performs some formatting to adjust the column widths to match
+                the size of the row output. Setting this parameter causes gpdiff
+                to ignore any differences in the column naming and format widths
+                globally.
+
+        -gpd_ignore_plans
+                Specify this option to ignore any explain plan diffs between the
+                input files. This will completely ignore any plan content in the
+                input files thus masking differences in plans between the input
+                files.
+
+        -gpd_init <file>
+                Specify an initialization file containing a series of directives
+                (mainly for match_subs) that get applied to the input files. To
+                specify multiple initialization files, use multiple gpd_init
+                arguments, eg:
+
+                  -gpd_init file1 -gpd_init file2
 
 ### atmsort.pl
 
