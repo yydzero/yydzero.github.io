@@ -160,9 +160,37 @@
 		canceled when loop back to CHECK_FOR_INTERRUPTS, so it is based on the
 		assumption that semop is *interruptible*;
 
-		TODO: we should change the behavior here to make it solid for
-		interrupts;
+		TODO: we should change the behavior here to make it viable to be
+		interrupted;
 
 
 ==> RemoveFromWaitQueue would first remove itself from the LOCK's waitProc, so
 	there is no ProcLockRemoveSelfAndWakeup, just ProcLockWakeup;
+
+==> ResProcSleep does not need to find a proper position in the waitProc list to
+	insert as ProcSleep, it can just append itself to the end of the queue,
+	since all the mode of the resource lock is exclusive, there is no check
+	between lock modes dependency; difference here is, after inserting itself to
+	waitProc list, it would call a ResCheckSelfDeadlock, which is not in
+	ProcSleep; the reason is that, regular deadlock detector does not consider
+	self deadlock at all, because one regular lock can be acquired only once in
+	share memory, and there is a basic assumption that there is no conflicts
+	between regular locks for a single process/transaction, so self deadlock is
+	a special case need to be handled for resource lock;
+
+==> TODO: change some of the ResQueueLock to LW\_SHARE, for example,
+	ResCheckSelfDeadLock
+
+	ResQueueLock not only protects ResQueueHash, but also protects
+	ResPortalIncrementHash;
+
+==> XXX what happens if we set role to another one in a transaction which has
+	declared cursors? how about the ResPortalIncrement?
+	then how about we set role in a function?
+
+==> XXX why TotalResPortalIncrements does not use portalLinks of PROCLOCK for
+	the calculation, instead of using PortalHashTable and ResPortalIncrementHash;
+
+	TotalResPortalIncrements does count itself, because ResIncrementAdd is
+	called in ResLockAcquire to insert itself into ResPortalIncrementHash even
+	before ResLockCheckLimit;
