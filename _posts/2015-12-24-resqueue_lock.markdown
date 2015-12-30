@@ -47,7 +47,8 @@
 		InitResScheduler; this is protected by ResQueueLock LWLock;
 	--> ResPortalIncrement: the increment of a specific portal, they are
 		organized as a double linked list(SHM_QUEUE) put in the portalLinks
-		field of PROCLOCK; this is protected by partition LWLock;
+		field of PROCLOCK; this is protected by partition LWLock; meanwhile,
+		they are organized as a hash table ResPortalIncrementHash;
 
 ==> ResProcLockRemoveSelfAndWakeup would traverse the wait list of a lock, and
 	then get the waiting portal(since only one portal in a process can be
@@ -162,10 +163,6 @@
 
 		TODO: we should change the behavior here to make it viable to be
 		interrupted;
-
-
-==> RemoveFromWaitQueue would first remove itself from the LOCK's waitProc, so
-	there is no ProcLockRemoveSelfAndWakeup, just ProcLockWakeup;
 
 ==> ResProcSleep does not need to find a proper position in the waitProc list to
 	insert as ProcSleep, it can just append itself to the end of the queue,

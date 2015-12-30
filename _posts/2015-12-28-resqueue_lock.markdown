@@ -37,3 +37,16 @@
 
 ==> TODO: Change PGSemaphoreLock in ResProcSleep to be consistent with ProcSleep, and
 	ResLockWaitCancel PGSemaphoreReset correspondingly;
+
+==> ResRemoveFromWaitQueue's difference from RemoveFromWaitQueue is: additional
+	cleanup for ResPortalIncrement by calling ResIncrementRemove;
+
+==> Steps to reproduce the phantom resource queue lock bug:
+	--> begin;
+	--> declare my_cursor cursor for select * from foo;
+	--> declare my_cursor2 cursor for select * from foo;
+	--> --this would error self-deadlock
+	--> abort;
+	--> begin;
+	--> declare my_cursor cursor for select * from foo;
+	--> check the pg_locks from another session
