@@ -28,13 +28,6 @@
 	should we remove LOCALLOCK for resource lock? not necessary, some routines
 	use the LOCALLOCK, such as ResLockWaitCancel;
 
-==> XXX ResLockAcquire's error cleanup is messy, verify whether it is solid. What
-	does ResLockRelease do in catch block? several resources needed to be
-	cleaned up:
-	--> LWLock
-	--> LOCK/PROCLOCK
-	--> ResPortalIncrement
-
 ==> TODO: Change PGSemaphoreLock in ResProcSleep to be consistent with ProcSleep, and
 	ResLockWaitCancel PGSemaphoreReset correspondingly;
 
