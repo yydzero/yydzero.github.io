@@ -22,17 +22,12 @@
 
 		--> guarantee there is an entry in LOCALLOCK for the resource lock; the
 			values do not matter actualy;
-			XXX do we really need LOCALLOCK for resource lock, since we must
+			Question: do we really need LOCALLOCK for resource lock, since we must
 			access share memory for resource lock;
+			Answer: it is mostly used for ResLockWaitCancel
 		--> since no LOCALLOCK guard, so a process/transaction may increase the
 			LOCK fields more than once;
-			XXX is this necessary? do other places handle this properly? e.g,
-			deadlock detector and pg_locks?
 		--> find the corresponding ResQueue
-			XXX when exception occurs here(cannot find ResQueue in ResQueueHash),
-			LWLockReleaseAll is called, so partition LWLock would be released also,
-			if other processes modify the LOCK fields concurrently, is there any risk?
-			XXX should reduce the LOCK before release all lwlocks in CATCH?
 		--> check the ignorecostlimit
 			--> ResCleanUpLock(no waking up needed)
 
@@ -70,8 +65,9 @@
 	--> ResLockUpdateLimit
 	--> ResProcWakeup(same as ProcWakeup, remove itself from lock's wait list)
 
-	XXX ResPortalIncrement is not removed from portalLinks of PROCLOCK, what is
+	ResPortalIncrement is not removed from portalLinks of PROCLOCK, what is
 	this used for?
+	Anwser: actually, this is not used at all, so I remove them;
 
 ==> The overcommit of ResQueueData is for cost only, which means that you can
 	exceed the cost limit if there is no other quota enquiry.(ResLockCheckLimit)
@@ -97,12 +93,6 @@
 ==> Before going to sleep in ResLockAcquire, there is a guc to control whether
 	we would destroy all idle reader gangs;
 
-==> TODO: ResWaitOnLock's sleeping part is different from WaitOnLock, is it correct? no
-	--> should use a PG_TRY/PG_CATCH to keep pgstat and display valid;
-	--> should set awaitedLock to NULL if deadlock detected? XXX to be further confirmed
-
-==> XXX raised exceptions in ResLockAcquire
-
 ==> The rough procedure of deadlock detection is: sig\_alarm is triggered, and
 	function CheckDeadLock is called, then if deadlock detected,
 	RemoveFromWaitQueue is called, then PGSemaphoreUnlock is called, then return
@@ -111,7 +101,8 @@
 
 ==> lockAwaited is set and reset in ProcSleep/LockWaitCancel, actually quite same as
 	awaitedLock, which is set and reset in WaitOnLock;
-	XXX can we merge them into a single one?
+	can we merge them into a single one? not that urgent, may have some hidden
+	problems I cannot think of now, so leave it there;
 
 ==> LockWaitCancel is to handle the cases when PGSemaphoreLock is interrupted by
 	SIGINT/SIGTERM, either on sem_wait or just exited from sem_wait; it is
@@ -121,12 +112,14 @@
 	ResLockWaitCancel is called in ResLockPortal when exceptions are caught in ResLockAcquire,
 	and in ResourceOwnerReleaseAllInternal;
 
-	XXX
 	--> can we merge LockWaitCancel and ResLockWaitCancel into a single one?
+		Answer: no, the error handling of resource lock is quite different from
+		regular lock, these two functions are called in different code path;
 	--> ResLockWaitCancel has some suspicious spots:
-		--> does not disable_sig_alarm
-		--> assert that we cannot be granted the lock
-		--> PGSemaphoreReset which is not necessary
+		--> does not disable_sig_alarm(fixed)
+		--> only handle the situation where we were not granted the lock
+			Answer: no problem, since we do not care locallock in resource lock;
+		--> PGSemaphoreReset which is not necessary(fixed)
 
 ==> It is manually verified when waiting for the resource lock, it is able to be
 	canceled; why? since StatementCancelHandler does not call ResLockWaitCancel.
@@ -162,7 +155,7 @@
 		assumption that semop is *interruptible*;
 
 		TODO: we should change the behavior here to make it viable to be
-		interrupted;
+		interrupted;(no customer reported this bug, so not that urgent)
 
 ==> ResProcSleep does not need to find a proper position in the waitProc list to
 	insert as ProcSleep, it can just append itself to the end of the queue,
@@ -176,17 +169,20 @@
 	a special case need to be handled for resource lock;
 
 ==> TODO: change some of the ResQueueLock to LW\_SHARE, for example,
-	ResCheckSelfDeadLock
+	ResCheckSelfDeadLock(the code change is quite big, not that urgent)
 
 	ResQueueLock not only protects ResQueueHash, but also protects
 	ResPortalIncrementHash;
 
-==> XXX what happens if we set role to another one in a transaction which has
-	declared cursors? how about the ResPortalIncrement?
+==> what happens if we set role to another one in a transaction which has
+	declared cursors?
+	Answer: no problem, since the resource lock is managed at the portal level;
 	then how about we set role in a function?
+	Answer: no worry, function would only be evaluated once per resource queue;
 
-==> XXX why TotalResPortalIncrements does not use portalLinks of PROCLOCK for
+==> why TotalResPortalIncrements does not use portalLinks of PROCLOCK for
 	the calculation, instead of using PortalHashTable and ResPortalIncrementHash;
+	Answer: just one choice of two, and we have removed portalLinks now;
 
 	TotalResPortalIncrements does count itself, because ResIncrementAdd is
 	called in ResLockAcquire to insert itself into ResPortalIncrementHash even

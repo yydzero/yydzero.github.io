@@ -33,10 +33,13 @@
 	for concurrency protection;
 
 ==> global variable lockHolderProcPtr is a pointer to a PGPROC which is
-	responsible for locking stuff, i.e, for utility mode and QD, it's itself, for
+	responsible for snapshot stuff, i.e, for utility mode and QD, it's itself, for
 	QE on segments, it's the writer's PGPROC; However, reader can indeed
-	possibly acquire locks, when writer is not found after 5 attempts(lock.c:595);
-	XXX if reader gang acquired locks, is there any risk we do not release them?
+	acquire locks;
+	Question: if reader gang acquired locks, is there any risk we do not release them?
+	Answer: no risk, the locks can be released in ResourceOwnerRelease, which
+	would be called in CommitTransaction or AbortTransaction, it is not writer
+	specific;
 
 ==> hash\_search would first calculate the hash value of the key,
 	hash_search_with_hash_value would directly use the hash_value param and then
@@ -49,22 +52,12 @@
 	to be used in hash table, when action is HASH_ENTER_NULL, the pointer cannot be palloc
 	related function;
 
-==> XXX why use MyProc instead of lockHolderProcPtr in PROCLOCKTAG?(lock.c:682)
-	
-	When no finding in LOCALLOCK, while PROCLOCK shows the LOCK has been
-	acquired, why we still go on acquiring the lock?!! something is corrupted,
-	either LOCALLOCK or PROCLOCK, why we do not report error?(lock.c:805)
-	check the master log from GE for this kind of LOG(lock.c:811)
-	The assumption there is the share memory is OK, while the LOCALLOCK is
-	corrupted;
-
 ==> GrantLock is to modify the LOCK and PROCLOCK structures' fields(number and
 	lockmask) to reflect that the lock has been granted to the process;
 
 ==> LockCheckConflicts would count the lock modes already held by this process,
 	and the processes has same mppSessionId, so it's OK for reader QE to acquire
-	locks, XXX but the numbers may have problem here, though the PROCMASK and
-	conflict relationship is OK;
+	locks;
 
 ==>	why in ProcSleep we should check LockCheckConflicts again? the
 	partitionLockId is always held by us(proc.c:974).
@@ -128,7 +121,7 @@
 
 ==> Only LockAcquire would call WaitOnLock, only WaitOnLock would call ProcSleep;
 
-==> TODO:
+==> TODO(done):
 	In ProcSleep, if we find a deadlock when trying to insert the PGPROC into
 	the wait list, i.e, when early_deadlock is true, we do not have to call
 	ProcLockWakeup in RemoveFromWaitQueue->CleanUplock, because the begin state
@@ -140,9 +133,14 @@
 	we have finished inserting the PGPROC into the wait list in ProcSleep; 
 
 ==> LockWaitCancel would be called in cancel/die handler;
-	XXX there is a comment in LockWaitCancel, saying "Don't try to cancel
+	Question: there is a comment in LockWaitCancel, saying "Don't try to cancel
 	resource locks";
-	XXX is there problems resource lock uses same awaitedLock as regurlar locks?
+	Answer: resource lock is specially handled by ResLockWaitCancel, it uses a
+	different code path with regular locks, it is OK here;
+
+	Question: is there problems resource lock uses same awaitedLock as regurlar locks?
+	Answer: no, there is no possibility that a process is waiting for a resource
+	lock and a regular lock at the same time;
 
 	LockWaitCancel is responsible for keep LOCALLOCK valid in race condition
 	when we are granted the lock and not able to record it in LOCALLOCK because

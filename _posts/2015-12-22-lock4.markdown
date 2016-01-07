@@ -1,4 +1,4 @@
-==> waitedLock is used for keep LOCALLOCK valid in error cases, it is first set
+==> awaitedLock is used for keep LOCALLOCK valid in error cases, it is first set
 	in the begining of WaitOnLock, and set back in the end of WaitOnLock; it is
 	used by WaitLockCancel to GrantLocalLock if found share lock granted, and
 	process itself is not able to GrantLocalLock before interruption;
