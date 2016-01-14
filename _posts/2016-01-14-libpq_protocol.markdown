@@ -188,3 +188,23 @@
 	send the usual StartupMessage and proceed without encryption.
 
 ==> References: http://www.postgresql.org/docs/9.4/static/protocol.html
+
+==> Normally, data should be transfered through libpq in message format, except old COPY
+	OUT; COPY OUT was designed to commandeer the communication channel (it just transfers
+	data without wrapping it into messages). No other messages can be sent while COPY
+	OUT is in progress;
+
+==> PostgreSQL puts all socket into nonblocking mode, and uses Latch to implement blocking
+	semantics; this is designed to provide safely interruptible reads and writes;
+
+	StreamServerPort is a wrapper of socket/bind/listen, StreamConnection is a wrapper of accept,
+	and StreamClose is a wrapper of close;
+
+	GPDB does have nonblocking socket in use, but they are in fts/walsender/interconnect, the core
+	does not enable nonblocking socket indeed(confirmed from code);
+
+	In both PG and GP, there is a internal_flush, this is a wrapper of send, insead of flush; there
+	is no socket flush call;
+
+	There is an interesting function in pqcomm.c called pq_putmessage_noblock, which is using blocking
+	socket; it is fulfilled by enlarge the PostgreSQL local send buffer;
