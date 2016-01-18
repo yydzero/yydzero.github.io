@@ -23,22 +23,38 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     $ sudo yum install openldap-devel       # If enable LDAP
     $ sudo yum install pam pam-devel        # If enable PAM
 
-    $ sudo yum install perl-Env             # If need installcheck-good
+    $ sudo yum install perl-devel			# If need installcheck-good
+
+	一种安装python库的方法是：
 
     $ wget https://bootstrap.pypa.io/get-pip.py
     $ sudo python get-pip.py
-
     $ sudo pip install psi lockfile paramiko setuptools epydoc
+
+	另一种安装python库的方法是:
+	$ yum install -y python-setuptools
+	$ easy_install pip
+	$ pip install psi paramiko
 
 ### 3. 编译 Greenplum Database 源代码并安装
 
-假定安装到 $HOME/gpdb.master 目录下
+#### 3.1 假定安装到 $HOME/gpdb.master 目录下
 
     $ ./configure --prefix=/home/gpadmin/build/gpdb.master --with-gssapi --with-pgport=5432 --with-libedit-preferred --with-perl --with-python --with-openssl --with-pam --with-krb5 --with-ldap --with-libxml --enable-cassert --enable-debug --enable-testutils --enable-debugbreak --enable-depend
 
     $ make
 
     $ make install
+
+#### 3.2 编译GPDB扩展组件代码（以gpfdist为例）
+
+	缺省一些组件的代码不是自动编译的，下面以gpfdist为例解释一下怎么编译GPDB的组件
+
+	$ cd $HOME/gpdb.master/gpAux/extensions/gpfdist
+	$ sudo yum install apr-devel libyaml-devel libevent-devel
+	$ ./configure --enable-transformations --prefix=$HOME/gpdb.master
+	$ make
+	$ make install
 
 ### 4. 初始化 Greenplum Database 集群
 
