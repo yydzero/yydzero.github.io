@@ -8,11 +8,13 @@ published: true
 ---
 
 最近有学生问我在试用Greenplum Database的时候，启动VMWare虚拟机会遇到如下错误：
+
 ```
 piix4_smbus 0000:00:007.3: Host SMBus controller not enabled! 
 ```
 
 我后来发现我自己的RHEL7在Mac上启动时也有这个问题（汗，之前没注意到），张贴一下：
+
 ```
 This error can be easily fixed by adding the extra line to the bottom of
 /etc/modprobe.d/blacklist.conf:
@@ -20,6 +22,7 @@ This error can be easily fixed by adding the extra line to the bottom of
 ```
 
 一些可能有用的命令：
+
 ```
 sudo cat /var/log/messages |grep "Host SMBus" -b5
 lsmod | grep -i i2c_piix4
@@ -27,6 +30,7 @@ lspci -v |grep -i piix -b3
 ```
 
 PS: 我还顺手屏蔽了另外一个问题：
+
 ```
 sd 0:0:0:0: [sda] Assuming drive cache: write through
 
