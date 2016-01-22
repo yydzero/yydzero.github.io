@@ -29,7 +29,7 @@ lsmod | grep -i i2c_piix4
 lspci -v |grep -i piix -b3
 ```
 
-PS: 我还顺手屏蔽了另外一个问题：
+此外，我还顺手屏蔽了另外一个问题：
 
 ```
 sd 0:0:0:0: [sda] Assuming drive cache: write through
