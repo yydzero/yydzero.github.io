@@ -34,6 +34,6 @@ PS: 我还顺手屏蔽了另外一个问题：
 ```
 sd 0:0:0:0: [sda] Assuming drive cache: write through
 
-sudo update-pciids  #更新PIC ID list
-sudo dmesg -n 1     #关掉终端输出
+sudo update-pciids  //更新PIC ID list
+sudo dmesg -n 1     //关掉终端输出
 ```
