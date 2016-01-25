@@ -1,0 +1,29 @@
+---
+layout: post
+title:  "Makefile debug"
+author: 姚延栋
+date:   2015-12-21 14:20:43
+categories: makefile
+published: true
+---
+
+有些时候需要debug Makefile，下面是一些方法：
+
+### Makefile make 选项
+
+* make -d | --debug=[flags]
+* make -n
+
+
+### 输出变量或者命令结果
+
+* 使用 $(info ...) 输出 Makefile 变量的结果
+* 使用测试用 Target 输出 shell 命令的结果
+
+    $(info HAS_SYSTEM_PROTOBUF_VERIFY is $(HAS_SYSTEM_PROTOBUF_VERIFY))
+
+    tt:
+            $(info PROTOBUF_CHECK_CMD is $(PROTOBUF_CHECK_CMD))
+            $(info HAS_SYSTEM_PROTOBUF_VERIFY is $(HAS_SYSTEM_PROTOBUF_VERIFY))
+            echo $(PKG_CONFIG_PATH)
+            pkg-config --list-all |grep protobuf
