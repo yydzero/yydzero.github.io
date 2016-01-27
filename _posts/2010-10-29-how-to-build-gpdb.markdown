@@ -6,7 +6,7 @@ date:   2015-10-29 14:20:43
 categories: GPDB
 ---
 
-本文以 RHEL7 为例介绍如何编译、安装和运行开源 GPDB。 最新的代码（2015/12) 也可以在 RHEL6 上编译了。
+本文以 RHEL7 为例介绍如何编译、安装和运行开源 GPDB。最新的代码（2015/12) 也可以在 RHEL6 上编译了。
 
 
 ### 1. 下载 Greenplum Database 源代码
@@ -64,9 +64,12 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 
 ### 4. 初始化 Greenplum Database 集群
 
-安装了二进制文件后，需要初始化数据库集群。下面在一台笔记本上安装一个GPDB的集群。集群包括一个master，两个segment。
+安装了二进制文件后，需要初始化数据库集群。下面在一台笔记本上安装一个GPDB的集群。集群包括一个master，两个segments。
 
+    # source一些环境变量, 例如PATH
     $ source $HOME/gpdb.master/greenplum_path.sh
+
+    # 交换集群中所有机器的ssh密钥, 我们这里只有一台机器
     $ gpssh-exkeys -h `hostname`
 
 #### 4.1 生成三个配置文件
@@ -76,6 +79,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     export PGPORT=5432
     export MASTER_DATA_DIRECTORY=$HOME/data/master/gpseg-1
 
+    # 集群中所有机器的hostname, 我们这里只有一台
     $ cat hostfile
     <your_hostname>
 
@@ -86,7 +90,10 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     PORT_BASE=40000
 
     # 根据需要，修改下面的路径和主机名
+    # 有几个DATA_DIRECTORY, 每个节点上便会启动几个segments
     declare -a DATA_DIRECTORY=(/path/to/your/data /path/to/your/data)
+
+    # master的主机名, 路径和端口
     MASTER_HOSTNAME=your_hostname
     MASTER_DIRECTORY=/path/to/your/data/master
     MASTER_PORT=5432
@@ -99,9 +106,11 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 #### 4.2 初始化 GPDB cluster
 
     $ source env.sh
+
+    # 多台机器的话可以指定hostfile, gpinitsystem命令会自动进行安装初始化工作
     $ gpinitsystem -c gpinitsystem_config -a
 
-初始化成功后，运行一下命令验证系统状态：
+初始化成功后，运行以下命令验证系统状态：
 
     $ psql -l
     $ gpstate
