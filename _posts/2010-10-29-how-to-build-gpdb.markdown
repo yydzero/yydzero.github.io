@@ -40,7 +40,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 
 #### 3.1 假定安装到 $HOME/gpdb.master 目录下
 
-    $ ./configure --prefix=/home/gpadmin/build/gpdb.master \
+    $ ./configure --prefix=/home/gpadmin/gpdb.master \
 						   --with-gssapi --with-pgport=5432 \
 						   --with-libedit-preferred --with-perl \
 						   --with-python --with-openssl --with-pam \
