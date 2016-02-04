@@ -1,0 +1,65 @@
+---
+layout: post
+title:  "如何为GPDB添加GUC"
+author: 刘奎恩
+date:   2016-01-05 11:39:24
+categories: gpdb guc
+published: true
+---
+
+Grand Unified Configuration (GUC) 是控制 PostgreSQL/GPDB 运行时行为的一种可配置变量，
+可用于控制feature开关（例如enable_indexscan), 辅助调试（如debug_print_plan），feature相关参数（例如gp_hadoop_home) 等。
+
+### GUC 简介
+
+#### GUC Context
+
+某些GUC只能在某种情况下才能设置，并生效。
+
+    typedef enum
+    {
+        PGC_INTERNAL,
+        PGC_POSTMASTER,
+        PGC_SIGHUP,
+        GPC_BACKEND,
+        PGC_SUSET,
+        PGC_USERSET
+    } GucContext;
+
+规则：
+
+* INTERNAL: 不能由用户设置，只能通过内部进程设置（例如server_version)。SHOW 可以显示其变量值。
+* POSTMASTER：只能在postmaster启动时设置，通过配置文件或者命令行选项。
+* SIGHUP：配置参数只能在 postmaster 启动时设置，或者修改配置文件后发送 HUP 信号给 postmaster或backend进程。
+* BACKEND：配置参数可以在postmaster启动时设置，从配置文件设置，或者client建立连接是设置（例如通过libpq的 PGOPTIONS 变量）。已经
+          运行的backend会忽略这种变化。想法是这种设置在backend启动后就不能改变，但是不同的backend可以有不同的设置。
+* SUSET：可以在 postmaster 启动时设置，使用 SIGHUP 机制，或者如果是超级用户也可以通过 SQL 命令设置。
+* USERSET：可以再任何时间由任何人设置。
+
+#### GUC Source
+
+记录当前设置的来源：
+
+    typedef enum
+    {
+        PGC_S_DEFAULT,              /* wired-in default */
+        PGC_S_ENV_VAR,              /* postmaster environment variable */
+        PGC_S_FILE,                 /* postgresql.conf */
+        GC_S_ARGV,                  /* postmaster command line */
+        PGC_S_DATABASE,             /* per-database setting */
+        PGC_S_USER,                 /* per-user setting */
+        PGC_S_CLIENT,               /* from client connection request */
+        PGC_S_OVERRIDE,             /* special case to forcibly set default */
+        PGC_S_INTERACTIVE,          /* dividing line for error reporting */
+        PGC_S_TEST,                 /* test per-database or per-user setting */
+        PGC_S_SESSION               /* SET command */
+    } GucSource;
+
+#### GUC type and group
+
+GUC 变量可是bool，int，real或者string。 group  定义了每个guc所属的类别，例如 CONN_AUTH，EXTERNAL_TABLES 等。
+
+不同类型的GUC对应不同类型的 struct，分别是：`struct config_string, struct config_real, struct config_int, struct config_bool`.
+
+### 添加一个新的 GUC
+
