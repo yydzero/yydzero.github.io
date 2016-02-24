@@ -1,0 +1,13 @@
+==> ERROR: JOIN qualification may not refer to other relations
+	A "mutator" is always supposed to create a deep copy of the tree, this is a
+	assumption in PostgreSQL; flat copy(FLATCOPY()) means memcpy the node, deep
+	copy(copyObject) means recurse into each sub-structure and copy the fields;
+
+==> ExecutorEnd gets run twice, which is not good
+	If QD hits an ERROR, and is aborting current transaction, then if there
+	comes a SIGINT, ExecutorEnd may be called twice, which would lead to
+	assertion failure;
+
+	Heikki's idea seems to be avoiding calling ExecutorEnd when aborting, and
+	instead divide the functionality of ExecutorEnd to ResourceOwners and
+	MemoryContexts, such as Gang releasion and interconnect tearing down;
