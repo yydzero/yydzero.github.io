@@ -3,7 +3,7 @@ layout: post
 title:  "如何加载大量的geometry数据到GPDB"
 author: 刘奎恩
 date:   2016-02-25 11:59:24
-categories: gpdb, data load, geometry 
+categories: gpdb data load geometry
 published: true
 ---
 

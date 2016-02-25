@@ -2,7 +2,7 @@
 layout: post
 title:  "开启 RHEL7 core dump"
 author: 姚延栋
-date:   2016-02-25 14:20:43
+date:   2016-02-20 14:20:43
 categories: makefile
 published: true
 ---
