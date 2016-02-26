@@ -1,6 +1,6 @@
 # Greenplum 数据库最佳实践
 
-本文档基于[Greenplum数据库最佳实践官方文档](https://support.pivotal.io/hc/en-us/article_attachments/201243717/GPDB_Best_Practices_vA01.pdf)。译者姚延栋。转载请注明出处。
+本文档基于[Greenplum数据库最佳实践官方文档](https://support.pivotal.io/hc/en-us/article_attachments/201243717/GPDB_Best_Practices_vA01.pdf)。译者姚延栋, 校订刘奎恩。转载请注明出处。
 
 ## 第一章
 
