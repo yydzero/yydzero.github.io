@@ -112,8 +112,24 @@ pg_regress 启动后根据是运行 schedule 还是单个测试执行不同的�
 gpdiff.pl 对比较文件首先调用 atmsort.pl 进行处理，然后比较他们的结果。 目的是忽略掉某些GPDB的消息，也会处理多个segment造成
 结果顺序不一致的问题。  `atmsort.pl --man` 可以看到更多信息。
 
-`make install-check` 时 pg_regress 会调用 gpdiff，选项为：
+`make install-check` 时 pg_regress 会调用 gpdiff，选项如下，这些选项都是由 diff 来处理的：
 
 
      "-w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE:".
+
+##### gpdiff.pl 处理流程
+
+gpdiff.pl 会对两个输入（目录或者文件）进行预处理，然后调用diff。 如果是两个文件，则调用 gpdiff_files().
+
+gpdiff_files() 首先创建2个临时文件用以保存对待比较文件的处理结果，包括排序等。 临时文件名格式如：/tmp/fileeHTcTAV.
+
+然后分别对两个待比较文件进行预处理，预处理由 atmsort.pm 完成：
+
+   atmsort::atmsort_init(%glob_atmsort_args);
+   atmsort::run($f1, $newf1);       // $f1 是待比较的文件之一， $newf1 是一个临时文件，将会保存对文件 $f1 的预处理结果。
+
+然后对预处理的两个文件调用 diff，生成最终的结果：
+
+   my $outi = `$ATMDIFF $args`;     // $ATMDIFF is diff.
+
 
