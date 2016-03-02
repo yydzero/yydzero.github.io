@@ -43,3 +43,9 @@ libraies need to be download from [epel source][2].
 
 [1]: {{ site.url }}/download/epel.repo
 [2]: {{ site.url }}/download/CentOS-Base.repo
+
+Besides, you may need to download the key from:
+```sh
+sudo wget http://mirrors.163.com/centos/RPM-GPG-KEY-CentOS-7
+sudo mv RPM-GPG-KEY-CentOS-7 /etc//etc/pki/rpm-gpg
+```
