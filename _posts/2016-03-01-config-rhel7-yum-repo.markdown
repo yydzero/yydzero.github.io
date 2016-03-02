@@ -46,6 +46,8 @@ libraies need to be download from [epel source][2].
 
 Besides, you may need to download the key from:
 ```sh
-sudo wget http://mirrors.163.com/centos/RPM-GPG-KEY-CentOS-7
+wget http://mirrors.163.com/centos/RPM-GPG-KEY-CentOS-7
+wget http://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+sudo mv RPM-GPG-KEY-EPEL-7 /etc//etc/pki/rpm-gpg
 sudo mv RPM-GPG-KEY-CentOS-7 /etc//etc/pki/rpm-gpg
 ```
