@@ -37,9 +37,7 @@ it (maybe not the best way):
 	```
 
 
- 3rd party libraries, json-c, geos, proj4, gdal and expat
-
-The libaraies json-c and expat can be download from [base source][1], the other three
+For example, PostGIS requires at least these 3rd party libraries: json-c, geos, proj4, gdal and expat. The libaraies json-c and expat can be download from [base source][1], the other three
 libraies need to be download from [epel source][2].
 
 
