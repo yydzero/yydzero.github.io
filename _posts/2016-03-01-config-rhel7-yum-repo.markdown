@@ -35,3 +35,13 @@ it (maybe not the best way):
 	```
 	vim /etc/yum.config and set 'plugins=0'
 	```
+
+
+ 3rd party libraries, json-c, geos, proj4, gdal and expat
+
+The libaraies json-c and expat can be download from [base source][1], the other three
+libraies need to be download from [epel source][2].
+
+
+[1]: {{ site.url }}/download/epel.repo
+[2]: {{ site.url }}/download/CentOS-Base.repo
