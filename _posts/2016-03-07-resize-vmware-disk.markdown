@@ -39,8 +39,7 @@ the vmware disk space.
 		devtmpfs               1.9G     0  1.9G   0% /dev
 		```
 	* display it using 'sudo vgdisplay' to confirm the free space
-	* expend space: 'sudo lvextend -L +10G /dev/rhel/root /dev/sda3'
-	* perform fsck: 'fsck.xfs -f /dev/rhel/root'
-	* 'resize2fs /dev/rhel/root'
+	* expend LVM space: 'sudo lvextend -L +10G /dev/rhel/root /dev/sda3'
+	* expend it onto fs: 'sudo xfs_growfs /dev/rhel/root'
 
 7. run 'fdisk -l' and 'df -lh' to see what happens, good luck!
