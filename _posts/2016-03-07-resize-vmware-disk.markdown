@@ -2,7 +2,7 @@
 layout: post
 title:  "如何扩展VMware虚拟机的磁盘空间"
 author: 刘奎恩 王淏舟
-date:   2016-03-07 14:07:24
+date:   2016-03-06 14:07:24
 categories: tools vmware disk resize
 published: true
 ---
