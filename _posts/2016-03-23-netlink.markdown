@@ -1,0 +1,35 @@
+==> Why and How to Use Netlink Socket
+
+	One question is how can kernel code and user-space code communicate with each other?
+	The answer is the various IPC methods that exist between kernel and user space, such as system
+	call, ioctl, proc filesystem or netlink socket.
+
+	Netlink socket is a special IPC used for transferring information between kernel and user-space
+	processes. It provides a full-duplex communication link between the two by way of standard socket
+	APIs for user-space processes and a special kernel API for kernel modules. Netlink socket uses the
+	address family AF_NETLINK, as compared to AF_INET used by TCP/IP socket.
+
+	--> Why do we use netlink instead of system calls, ioctls or proc filesystems for communication between
+		user and kernel worlds? It is a nontrivial task to add system calls, ioctls or proc files for new
+		features; we risk polluting the kernel and damaging the stability of the system. 
+
+	--> Netlink is asynchronous because, as with any other socket API, it provides a socket queue to smooth
+		the burst of messages. The system call for sending a netlink message queues the message to the
+		receiver's netlink queue and then invokes the receiver's reception handler. The receiver, within
+		the reception handler's context, can decide whether to process the message immediately or leave the
+		message in the queue and process it later in a different context. Unlike netlink, system calls require
+		synchronous processing. Therefore, if we use a system call to pass a message from user space to the
+		kernel, the kernel scheduling granularity may be affected if the time to process that message is long.
+
+		That is to say, netlink is implemented as an enhanced feature of system call.
+
+	--> Netlink socket supports multicast, which is another benefit over system calls, ioctls and proc. One
+		process can multicast a message to a netlink group address, and any number of other processes can listen
+		to that group address. This provides a near-perfect mechanism for event distribution from kernel to user space.
+
+	--> System call and ioctl are simplex IPCs in the sense that a session for these IPCs can be initiated
+		only by user-space applications. But, what if a kernel module has an urgent message for a user-space
+		application? There is no way of doing that directly using these IPCs. Normally, applications periodically
+		need to poll the kernel to get the state changes, although intensive polling is expensive. Netlink solves
+		this problem gracefully by allowing the kernel to initiate sessions too. We call it the duplex characteristic
+		of the netlink socket.
