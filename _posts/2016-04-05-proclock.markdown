@@ -1,0 +1,10 @@
+==> Tips on debugging share memory structure
+	--> SHM_QUEUE records the offset in share memory, the base pointer is
+	ShmemBase, use the offset plus this ShmemBase, then you can get the pointer
+	of the SHM_QUEUE structure, then substract the offset of the link field in
+	the larger structure, we can get the pointer of the structure wanted, e.g,
+	PROCLOCK; we use ((long) &((type *)0)->field) to compute the offset of
+	fields(offsetof() in code);
+
+	--> to judge whether the element is the last one, compare the next value
+	with the (head pointer - ShmemBase), if same, then it is the last one;
