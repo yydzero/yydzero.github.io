@@ -1,0 +1,20 @@
+---
+layout: post
+title:  "如何在git界面上正常显示tab为4个空格"
+author: 刘奎恩 王淏舟
+date:   2016-04-05 12:47:24
+categories: tools git
+published: true
+---
+
+Is a tab equals 4 whitespaces? If not, plz follow below tips.
+
+* on GitHub PR website
+
+  add ```?ts=4``` to the end of url, for example:
+
+  https://github.com/greenplum-db/gpdb/pull/605/files?ts=4
+
+* on 'git diff' terminal
+
+  git config --global core.pager 'less -x1,5'
