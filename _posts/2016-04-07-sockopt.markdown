@@ -1,0 +1,59 @@
+==> two socket options: TCP_NODELAY and TCP_CORK
+
+	First of all not both of them disables Nagle's algorithm.
+
+	Nagle's algorithm is for reducing more number of small network packets in
+	wire. The algorithm is: if data is smaller than a limit (usually MSS), wait
+	until receiving ACK for previously sent packets and in the mean time
+	accumulate data from user. Then send the accumulated data.
+
+	if [ data > MSS ]
+	    send(data)
+	else
+	    wait until ACK for previously sent data and accumulate data in send
+		buffer (data)
+	    And after receiving the ACK send(data)
+
+	This will help in applications like telnet. However, waiting for the ACK may
+	increase latency when sending streaming data. Additionally, if the receiver
+	implements the 'delayed ACK policy', it will cause a temporary deadlock
+	situation. In such cases, disabling Nagle's algorithm is a better option.
+
+	So TCP_NODELAY is used for disabling Nagle's algorithm.
+
+	TCP_CORK aggressively accumulates data. If TCP_CORK is enabled in a socket,
+	it will not send data until the buffer fills to a fixed limit. Similar to
+	Nagle's alogirthm, it also accumulates data from user but until the buffer
+	fills to a fixed limit not until receiving ACK. This will be useful while
+	sending multiple blocks of data. But you have to be more careful while using
+	TCP_CORK.
+
+	Until 2.6 kernel, both of these options are mutually exclusive. But in later
+	kernel, both of them can exist together. In such case, TCP_CORK will be
+	given more preference.
+
+==> BLOCKING and NON_BLOCKING socket
+	--> For TCP, A call to send has three possible outcomes:
+		--> There is at least one byte available in the send buffer, send succeeds and
+			returns the number of bytes accepted (possibly fewer than you asked for).
+		--> The send buffer is completely full at the time you call send.
+			--> if the socket is blocking, send blocks
+			--> if the socket is non-blocking, send fails with EWOULDBLOCK/EAGAIN
+		--> An error occurred (e.g. user pulled network cable, connection reset
+			by peer), send fails with another error
+
+	--> Does this mean that for blocking TCP, the send() call will always return immediately
+		if there is enough room in the kernel send buffer for the sending data?
+		--> Yes. As long as immediately means after the memory you provided it
+			has been copied to the kernel's buffer.
+
+	--> For blocking sockets, both TCP and UDP will block until there's
+		space in the kernel buffer. The distinction however is that the UDP socket
+		will wait until your entire buffer can be stored in the kernel buffer,
+		whereas the TCP socket may decide to only copy a single byte into the kernel
+		buffer (typically it's more than one byte though).
+
+		If you try to send packets that are larger than 64kiB, a UDP socket will
+		likely consistently fail with EMSGSIZE. This is because UDP, being a
+		datagram socket, guarantees to send your entire buffer as a single IP packet
+		or not send it at all.
