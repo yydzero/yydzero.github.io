@@ -57,3 +57,53 @@
 		likely consistently fail with EMSGSIZE. This is because UDP, being a
 		datagram socket, guarantees to send your entire buffer as a single IP packet
 		or not send it at all.
+
+==> TCP_NODELAY is just an optimization inside send buffer on the packet level,
+	it has no direct relationship with BLOCK and NON_BLOCK;
+
+==> FD_CLOEXEC
+	It sets the close-on-exec flag for the file descriptor, which causes the
+	file descriptor to be automatically (and atomically) closed when any of the
+	exec-family functions succeed. This is useful to keep from leaking your file
+	descriptors to random programs.
+
+	difference between FD_CLOEXEC and SOCK_CLOEXEC:
+
+	Normally if you want the file descriptor to be close-on-exec you'd first
+	obtain the file descriptor in some way, then call fcntl(fd, F_SETFD, FD_CLOEXEC).
+	But in a threaded program there is a possibility for a race condition between
+	getting that file descriptor and setting the CLOEXEC flag. Therefore Linux has
+	recently changed most (if not all) system calls that return new file descriptors
+	to also accept flags that tell the kernel to atomically set the close-on-exec flag
+	before making the file descriptor valid. That way the race condition is closed. That
+	is what SOCK_CLOEXEC used for.
+
+==> A coding convention is to set the options of the socket after getting one
+	before using it;
+
+==> KEEPALIVE can be set using setsockopt per socket;
+	Setting KEEPALIVE would not affect the behavior at all, if KEEPALIVE detects
+	the other end to be dead, then kernel would not notify user space;
+
+	You'll get the same result if you enable SO_KEEPALIVE, as if you don't
+	enable SO_KEEPALIVE. Typically you'll find the socket ready and get an
+	error when you read from it.
+
+	SO_KEEPALIVE makes the kernel more aggressive about continually verifying
+	the connection even when you're not doing anything, but does not change or
+	enhance the way the information is delivered to you. You'll find out when
+	you try to actually do something (for example "write"), and you'll find out
+	right away since the kernel is now just reporting the status of a previously
+	set flag, rather than having to wait a few seconds (or much longer in some
+	cases) for network activity to fail. 
+
+	To modify the number of probes or the probe intervals, you write values to
+	the /proc filesystem like
+
+	echo 600 > /proc/sys/net/ipv4/tcp_keepalive_time
+	echo 60 > /proc/sys/net/ipv4/tcp_keepalive_intvl
+	echo 20 > /proc/sys/net/ipv4/tcp_keepalive_probes
+	
+	Note that these values are global for all keepalive enabled sockets on
+	the system, You can also override these settings on a per socket basis
+	when you set the setsockopt.
