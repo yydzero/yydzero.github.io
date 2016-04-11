@@ -1,0 +1,35 @@
+==> For SERIALIZABLE isolation level, there is only one snapshot for all
+	statements in the transation, the snapshot is taken in the first statement,
+	not BEGIN; BEGIN would take no snapshot as well as transaction id;
+
+	For READ COMMITTED isolation level, each statement would take its own
+	snapshot, at the beginning of the portal; BEGIN would not take snapshot and
+	transaction id;
+
+	New transaction id is assigned when data modification is going to be
+	applied, for example, in heap_insert, it would call GetCurrentTransactionId,
+	and find the xid is invalid, then GetNewTransactionId would be called;
+
+	GetTransactionSnapshot would determine whether to take new snapshot based on
+	the isolation level, and GetSnapshotData is the function to actually take a
+	snapshot; the critical work of GetSnapshotData is to set xmin and xmax;
+
+	xmin is defined as: lowest still running xid, while xmax is highest
+	completed xid + 1; so if a xid < xmin, then it must be completed, if xid >=
+	xmax, then it must be in progress;
+
+	Normally, the visibility checking function is HeapTupleSatisfiesMVCC;
+
+==> GetSnapshotData would acquire share lock on procArray; xmax is easy to set,
+	just checking a value in shmem is OK, since each xact would modify this
+	value if necessary at commit; xmin is not that easy, iterating the procArray
+	and allPgXact array is needed; if no GetNewTransactionId is called for a
+	transaction block, then the PGXACT slot for that transaction is all 0; so it
+	is common to see xmin equals xmax in a snapshot, if all other transactions
+	do not call GetNewTransactionId, because xmin is set to be equal to xmax if
+	invalid;
+
+==> HeapTupleSatisfiesMVCC is not that easy to just check xmin in tuple header
+	with the snapshot(while the core idea is), there are other checks, such as
+	infomask(optimization of xmin/xmax), and even iterating the procArray in
+	TransactionIdIsInprogress;
