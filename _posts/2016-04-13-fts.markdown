@@ -1,0 +1,52 @@
+==> getCdbComponentInfo would query catalog gp_segment_configuration, and sort
+	the results based on content id ASC, and then apply some checks; Note that,
+	each segment may have primary and mirror, thus there are maybe two rows
+	having same content id/segindex, while their dbid is different, primary is
+	before mirror for each segment; the total_segments field of the returned
+	result only counts different segments, while the total_segment_dbs and
+	total_entry_dbs count the whole array size, including primary and mirror;
+
+	GPDB implements its own qsort with operator as parameter, really useful;
+
+==> FTS would probe all current primary dbs, for those mirror dbs, if the fault
+	strategy is file-based failover(recorded in gp_fault_strategy), then all the
+	up mirror dbs are probed, if down then not; if other fault strategies, then
+	mirrors are skipped; (implemented in FtsIsSegmentAlive)
+
+	For those mirrors marked as to be probed, only when the primary is probed as
+	dead or having crash/network fault, then the mirror would be really probed;
+	(implemented in probeSegmentFromThread)
+
+	FtsProbeSegments would start several threads to do the probing job, the
+	thread worker is probeSegmentFromThread, in which probeSegment is called to
+	do the real work of probing one segment;
+
+	In probeSegment there is one coding style worth learning:
+	```
+	/*
+     * probe segment: open socket -> connect -> send probe msg -> receive response;
+     * on any error the connection is shut down, the socket is closed
+     * and the probe process is restarted;
+     * this is repeated until no error occurs (response is received) or timeout expires;
+     */
+    while (!probeGetIpAddr(&probeInfo) ||
+           !probeOpenSocket(&probeInfo) ||
+           !probeMarkSocketNonBlocking(&probeInfo) ||
+           !probeConnect(&probeInfo) ||
+           !probeSend(&probeInfo) ||
+           !probeReceive(&probeInfo) ||
+           !probeProcessResponse(&probeInfo))
+    {
+        probeClose(&probeInfo);
+		/* check time out */
+	}
+	```
+
+	After calling FtsProbeSegments and get a status report, FtsLoop would call
+	probePublishUpdate -> updateConfiguration, updateConfiguration would first
+	call probeUpdateConfig to update catalog table gp_segment_configuration and
+	share memory, then call FtsFailoverFilerep -> modeUpdate to do real failover
+	on segments; modeUpdate would build a command string "gp_primarymirror -xxx"
+	and call system to execute the cmd string; gp_primarymirror is a binary
+	using libpq to connect to segments in utility mode to do failover(src code
+	under src/bin/gpmirrortransition/);

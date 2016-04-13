@@ -107,3 +107,30 @@
 	Note that these values are global for all keepalive enabled sockets on
 	the system, You can also override these settings on a per socket basis
 	when you set the setsockopt.
+
+==> SIGPIPE would happen if try to write to a socket, while the connection of
+	the socket has been closed by the peer end;
+
+	Q: SIGPIPE can only occur as the result of a write(), which can (and does)
+	return -1 and set errno to EPIPE... So why do we have the extra overhead of
+	a signal? Every time I work with pipes I ignore SIGPIPE and have never felt
+	any pain as a result, am I missing something?
+
+	A: I think it is to get the error handling correct without requiring a lot of
+	code in everything writing to a pipe. Some programs ignore the return value of
+	write(); without SIGPIPE they would uselessly generate all output.
+
+	For read, if the peer close the connection gracefully, then read/recv would
+	return 0 indicating that the connection has been closed;
+
+	POLLHUP means the connection has been closed as well;
+
+	EOF is a macro defined as an int with a negative value.
+
+==> We have three methods of blocking SIGPIPE during send() calls to this socket:
+	-->	setsockopt(sock, SO_NOSIGPIPE)
+	-->	send(sock, ..., MSG_NOSIGNAL)
+	-->	setting the signal mask to SIG_IGN during
+	
+	The third method requires three syscalls per, so we prefer either of the first
+	two, but they less portable.
