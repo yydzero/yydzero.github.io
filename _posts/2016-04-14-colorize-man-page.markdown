@@ -11,15 +11,17 @@ add below lines into ~/.bashrc and re-source it
 
 ```sh
 # colorize man pages
-export PAGER="`which less` -s"
-export BROWSER="$PAGER"
-export LESS_TERMCAP_mb=$'\E[01;36m'
-export LESS_TERMCAP_md=$'\E[01;36m'
-export LESS_TERMCAP_me=$'\E[0m'
-export LESS_TERMCAP_se=$'\E[0m'
-export LESS_TERMCAP_so=$'\E[01;44;33m'
-export LESS_TERMCAP_ue=$'\E[0m'
-export LESS_TERMCAP_us=$'\E[01;33m'
+man() {
+        env GROFF_NO_SGR=1 \
+        LESS_TERMCAP_mb=$'\E[05;34m' \
+        LESS_TERMCAP_md=$'\E[01;34m' \
+        LESS_TERMCAP_me=$'\E[0m'     \
+        LESS_TERMCAP_se=$'\E[0m'     \
+        LESS_TERMCAP_so=$'\E[44;33m' \
+        LESS_TERMCAP_ue=$'\E[0m'     \
+        LESS_TERMCAP_us=$'\E[04;33m' \
+        man "$@"
+}
 ```
 
 No thanks, I'm LeiFeng !.
