@@ -23,8 +23,22 @@ more than 150 locations which cover bellow 5 areas:
 
 > Crash Recovery
 
-#### Example
-> gp_faultinjector -f StartPrepareTx -y fault -r primary -s 10 -H sdw2 -c create_table -D gpadmin -t testtable -o 10
+#### Usage
+** gp_faultinjector -f StartPrepareTx -y fault -r primary -s 10 -H sdw2 -c create_table -D gpadmin -t testtable -o 10 **
+
+#### Test example
+
+```python
+ def test_postmaster_reset(self):
+        ''' Test FTS :Postmaster reset fails on mirror, transition is not copied to local memory.'''
+        outfile=mkpath('fault_mpp.out')
+        command = "gpfaultinjector -f filerep_flush -y panic -m async -r primary -H ALL > %s 2>&1" % (outfile)
+        shell.run(command)
+        print "\n Done Injecting Fault"
+        psql.runfile(mkpath('test_ddl.sql'),'-a')
+        self.postmaster_reset_test_validation('sync1','mirror’)
+
+```
 
 This command says users want to enable an injector named "StartPrepareTx" in host sdw2 for segment 10 and want injector to report a panic error. So next time users run create table queries, a panic will be raised.
 
