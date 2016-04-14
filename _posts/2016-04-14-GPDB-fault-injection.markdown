@@ -98,16 +98,19 @@ switch (entryLocal->faultInjectorType) {
 We'll use internal_flush_error as a running example.
 
 1. Add a new entry to the clsInjectFault python file. Remember the position of the new line relative to the other entries (e.g. second to last)
+
 ```c
 "internal_flush_error (inject an error during internal_flush), " \
 ```
 2. In the same relative position to the other entries as in the list, add a new entry to the enum FaultInjectorIdentifier_e in faultinjector.h       InternalFlushError
 3. In the same relative position to the other entries in the list, add a new entries to the const char* FaultInjectorIdentifierEnumToString[]: in faultinjector.c
+
 ```c
 ("internal_flush_error"),
 ```
 4. Go to the part of the code where you want the fault to be injected.
 Include the fault injector header  
+
 ```c
 #include "utils/faultinjector.h"
 In our case, I injected the following code in internal_flush():
