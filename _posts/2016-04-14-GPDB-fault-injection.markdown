@@ -97,23 +97,23 @@ switch (entryLocal->faultInjectorType) {
 
 We'll use internal_flush_error as a running example.
 
-1. Add a new entry to the clsInjectFault python file. Remember the position of the new line relative to the other entries (e.g. second to last)
+1.Add a new entry to the clsInjectFault python file. Remember the position of the new line relative to the other entries (e.g. second to last)
 
 ```c
 "internal_flush_error (inject an error during internal_flush), " \
 ```
-2. In the same relative position to the other entries as in the list, add a new entry to the enum FaultInjectorIdentifier_e in faultinjector.h       InternalFlushError
-3. In the same relative position to the other entries in the list, add a new entries to the const char* FaultInjectorIdentifierEnumToString[]: in faultinjector.c
+2.In the same relative position to the other entries as in the list, add a new entry to the enum FaultInjectorIdentifier_e in faultinjector.h       InternalFlushError
+3.In the same relative position to the other entries in the list, add a new entries to the const char* FaultInjectorIdentifierEnumToString[]: in faultinjector.c
 
 ```c
 ("internal_flush_error"),
 ```
-4. Go to the part of the code where you want the fault to be injected.
-Include the fault injector header  
+4.Go to the part of the code where you want the fault to be injected.
+Include the fault injector header  **#include "utils/faultinjector.h"**
+
+In our case, I injected the following code in internal_flush():
 
 ```c
-#include "utils/faultinjector.h"
-In our case, I injected the following code in internal_flush():
 #ifdef FAULT_INJECTOR
     FaultInjector_InjectFaultIfSet(
         InternalFlushError,
@@ -122,5 +122,5 @@ In our case, I injected the following code in internal_flush():
         ""); // tableName
 #endif
 ```
-5. To inject the fault, use the gpfaultinjector script
+5.To inject the fault, use the gpfaultinjector script
 > E.g. to inject on the master: gpfaultinjector -f internal_flush_error -y error --seg_dbid 1
