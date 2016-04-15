@@ -24,4 +24,6 @@ man() {
 }
 ```
 
+It works for ubuntu, redhat as well as mac os.
+
 No thanks, I'm LeiFeng !.
