@@ -1,0 +1,111 @@
+Not just user-level software, including applications, databases and webservers,
+but also the operating system kernel and device drivers. The name is short for
+Dynamic Tracing: an instrumentation technique pioneered by DTrace which dynamically
+patches live running instructions with instrumentation code. The DTrace facility
+also supports Static Tracing: where user-friendly trace points are added to code
+and compiled-in before deployment.
+
+DTrace provides a language, 'D', for writing DTrace scripts and one-liners. The
+language is like C and awk, and provides powerful ways to filter and summarize data
+in-kernel before passing to user-land. This is an important feature that enables
+DTrace to be used in performance-sensitive production environments, as it can
+greatly reduce the overhead of gathering and presenting data.
+
+dtrace -l -n tcp::entry or dtrace -l -m tcp
+dtrace -lv -n fbt:tcp:inet_info:entry
+
+A D script consists of a probe description, a predicate, and actions as shown
+below:
+probe description
+/predicate/
+{
+	actions
+}
+
+When the D script is executed the probes described in the probe description are
+enabled.
+
+DTrace inserts the interrupt dynamically.
+
+DTrace uses the following format to identify a probe:
+provider:module:function:name
+
+Or, from the command line:
+
+-P     provider
+-m     module
+-f     function
+-n     name 
+-s     script
+-p     pid
+-c     run command
+-l     list
+-v     verbose
+
+So a simple DTrace script would look like this:
+
+syscall:::entry                     // probe description
+/pid == $1/                        // predicate
+{
+	@[probefunc] = count();    // action
+}
+ 
+In the preceding script, syscall is the provider. The module designation is
+omitted so the script matches on any module. The function designation is
+likewise omitted, so the script matches on any function. In this example, we are
+interested only in the entry to the function as opposed to the return. The
+predicate ( /pid == $target/) determines if the action ( @[probefunc] = count();) is
+performed. The action occurs only when the pid (process id) matches the first parameter
+passed on the command line.
+
+The action is an aggregation (designated by the @) that contains the count by
+function name of the system calls executed. By default, the contents of the
+aggregation are printed upon exit from the script.
+
+Use 'dtrace -l -P pid<pid_of_backend> -m postgres' to list all the probes of a
+backend process;
+
+$target is used with -p <PID> in provider, while in predicate, we can directly
+use keyword pid, same as cpu, execname, ppid, arg0;
+
+For action part, serverl common used actions are: printf(), ustack(), trace; if
+action is missed, then the name of the probe fired is printed;
+
+The types of information application developers are particularly interested in
+can be obtained by using the following providers: syscall, proc, pid, sdt,
+vminfo.
+
+You may have noticed that the output from scripts went by too fast to be useful.
+D language has a wonderful construct called aggregate to collect all the detail in
+memory and print out a summary. Aggregations allow you to collect tables of information
+in memory. Aggregations have the following construct:
+@name[table index(es)] =aggregate_function()
+
+For example:
+@count_table[probefunc] = count() ;
+This aggregation will collect information into a table with name of the function
+(probefunc is a built-in variable that has the name of the function). The aggregation
+function count() keeps track of the number of times the function was called. The other
+popular aggregation functions are average, min, max, and sum.
+
+Once you stop the script, DTrace will print out the table of information. Notice that
+you do not need to write any code to print the table. The probes are disabled as soon
+as the script is stopped. You do not need to do anything special for disabling these
+probes. In addition, DTrace will automatically clean up any memory it allocated.
+You do need to write any code for cleanup.
+
+DTrace allows you to monitor a process from the time it starts until it ends using the
+$target variable and the -c option. This script will count the number of times libc
+functions are called from a given application.
+
+-- libc_func.d
+#!/usr/sbin/dtrace -s
+pid$target:libc::entry
+{
+	@[probefunc]=count();
+}
+
+then run the target binary using:
+libc_func.d -c "postgres > /tmp/log 2>&1 &"
+
+proc provider fires at processes and thread creation and termination as well as signals.
