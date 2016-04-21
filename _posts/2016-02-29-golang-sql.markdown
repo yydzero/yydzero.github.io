@@ -4,7 +4,7 @@ title:  "golang sql"
 author: 姚延栋
 date:   2016-02-20 14:20:43
 categories: golang sql
-published: false
+published: true
 ---
 
 ## golang sql
