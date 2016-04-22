@@ -14,7 +14,10 @@ layout: default
 		</span>
 
         <h2>
-          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">
+		  {{ post.title }}
+		  {% if post.subtitle %} <br> {{ post.subtitle }}{% endif %}
+		  </a>
         </h2>
       </li>
     {% endfor %}

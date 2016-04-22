@@ -1,7 +1,8 @@
 ---
 layout: post
 title:  "Attribut a single commit to multiple developers"
-author: 刘奎恩
+subtitle: 一个git commit多个developers怎么搞？
+author: 刘奎恩/Kuien
 date:   2016-04-21 9:47:12
 categories: tools git
 published: true
