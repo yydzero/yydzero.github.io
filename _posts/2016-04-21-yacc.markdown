@@ -1,0 +1,32 @@
+---
+layout: post
+title:  "Yacc"
+author: 姚延栋
+date:   2016-04-21 21:20:43
+categories: yacc
+published: false
+---
+
+## Yacc - parser 生成器
+
+### Yacc 规范
+
+Yacc 规范骨架：
+
+    %{
+        /* C declarations and includes */
+    }%
+
+    %%
+        /* Yacc Spec in the form of grammar rules like this: */
+
+        symbol  : symbols tokens
+                    { $$ = my_c_code($); }
+                ;
+    %%
+
+每个语法规则定义一个 symbol。每个语法规则可以关联某个动作，这个动作在规则的所有符号都被解析后执行。
+
+### References
+
+* https://luv.asn.au/overheads/lex_yacc/yacc.html
