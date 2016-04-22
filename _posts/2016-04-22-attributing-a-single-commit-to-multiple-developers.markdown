@@ -12,17 +12,21 @@ To attribut a single commit to multiple developers for pair-programmed
 source-code, several possible solutions you may choose:
 
 One solution would be to set a name for the pair:
+
 ```
 git config user.name "Kuien Liu and Yandong Yao"
 ```
 
 Or, add a note at the end of the commit message saying
+
 ```
 Co-authored-by: Kuien Liu <kliu@pivotal.io>
+
 Commit by Kuien Liu and Yandong Yao.
 ```
 
 Also it is suggested to give more information in commit message:
+
 ```
 	Notes (Issue #223)
 		Kuien Liu <kliu@pivotal.io>
@@ -37,6 +41,7 @@ Also it is suggested to give more information in commit message:
 	Notes (review):
 		Yandong Yao <pivotal.io>
 ```
+
 It is good but a bit little verbose :)
 
 --
