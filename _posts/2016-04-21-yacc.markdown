@@ -27,6 +27,12 @@ Yacc 规范骨架：
 
 每个语法规则定义一个 symbol。每个语法规则可以关联某个动作，这个动作在规则的所有符号都被解析后执行。
 
+### Yacc Rules
+
+#### 语法规则
+
+Yacc 语法定义了那些 tokens seqences 是合法的。（语言学上的合法token序列）
+
 ### References
 
 * https://luv.asn.au/overheads/lex_yacc/yacc.html
