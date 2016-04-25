@@ -43,7 +43,7 @@ Greemplum是Pivotal面向大数据分析以及传统企业客户构建数据仓�
 
 ### 关注 Greenplum 纯技术讨论群
 
-* ![群二维码]({{ site.url }}/assets/gpdb-wechat-barcode.jpeg)
+* ![群二维码]({{ site.url }}/assets/images/gpdb-wechat-barcode.jpeg)
 
 * 如果群到达上限无法自动加入，可以通过 QQ 群 99194625 发请求。
 

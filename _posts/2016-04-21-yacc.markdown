@@ -7,15 +7,108 @@ categories: yacc
 published: false
 ---
 
-## Yacc - parser 生成器
+# Lex & Yacc
+
+Lex 识别正则表达式；Yacc 识别整个语法。Lex 将输入字符流分成 tokens 流； Yacc 将 token 流组织成有意义的语法。
+
+lex 自动生成 yylex() 函数， yacc 自动生成 yyparse() 函数。 若要实现复杂的处理，则需要的 lex、yacc 生成的函数命名规范有所了解。
+生成那些函数，那些变量以及各自的含义。
+
+* yyin: lexer 从 yyin 读入数据，默认是 stdin。
+* yyout:lexer 输出到 yyout，默认是 stdout。
+* yywrap: yylex() 遇到 yyin 的 EOF 时，调用 yywrap(), 如果 yywrap 返回1，则停止，如果返回0，则表示yywrap打开了一个新的文件，并赋值给了yyin。
+* yyerror
+* yymore
+* yylval
+
+lex 和 yacc 使用例子：
+
+    $ yacc -d calc.y      # 生成 y.tab.c 和 y.tab.h
+    $ lex calc.l          # 生成 lex.yy.c
+    $ cc -o calc y.tab.c lex.yy.c -ly -ll   # 编译并连接成可执行程序。
+
+## Lexer
+
+使用lex生成 lexer：
+
+    % lex words.l
+    % cc words.yy.c -o first -ll
+
+### Parser-Lexer 通信
+
+当 lex 和 yacc 合用时， parser 调用lexer。 parser 会调用lexer 的 yylex() 以从输入获得下一个 token。 而 lexer 则扫描
+输入并识别tokens。 当 yylex 发现一个 tokens，则返回给 parser，yylex() 的返回值是 token 的code。
+
+parser并不是对所有token都感兴趣，例如很多编程语言会忽略调用comments和空格。对于这种忽略的 tokens， lexer 不会返回给parser
+而是继续处理下一个 token。
+
+Lexer 和 parser 必须为相同的 token 定义相同的 token code。通常做法是 yacc 定义 token codes，lex直接使用它们。
+内部处理时token code比token name更重要，name主要是为了便于理解。
+
+Yacc 使用 y.tab.h 定义 token 名字，下面是一个为parser提供tokens的简单lexer例子：
+
+    %{
+    #include "y.tab.h"
+    extern int yylval;
+    %}
+
+    %%
+    [0-9]+      { yylval = atoi(yytext);  return NUMBER; }
+    [ \t] ;           /* ignore whitespace */
+    \n    return 0;   /* logical EOF */
+    .     return yytext[0];
+    %%
+
+#### yylval
+
+从上面例子可以看出，yylval 是lex和yacc共享的变量。这个例子比较简单，所以直接声明 yylval。更复杂的parser中，yacc 使用
+union 定义 yylval。
+
+从下面的例子，可以看出 yylval 是 symbol 的值。而 return 的是symbol的名字。
+
+    { yylval = atoi(yytext);  return NUMBER; }
+
+### Lexer 状态
+
+通过状态功能，Lexer可以尽在某种状态下识别某些 tokens。大大提高了 lexer 处理的灵活性。
+
+## Yacc - 解析器生成器
+
+### Yacc 语法树
+
+Yacc 描述的语法含有 start 符号，它是解析后的语法树的 root。例如 C 语言源代码解析后的start符号就是一个完整的 c 程序文件。 SQL 解析后
+的语法树是一个完整的 SQL 语句（可以是 SELECT、INSERT、UPDATE、DELETE 等DDL或者DML）
+
+一个例子：
+
+    statement → NAME = expression
+    expression → NUMBER
+               | expression + NUMBER
+               | expression − NUMBER
+
+对应的语法树如下所示：父节点是 LHS，子节点是 RHS。
+
+![递归规则语法树]({{ site.url }}/assets/images/recursive_ast_example.png)
+
+Yacc 不能处理有歧义的语法(匹配多个语法树），也不能处理需要look ahead多个token的语法。
 
 ### Yacc 规范
 
 Yacc 规范骨架：
 
+    /*
+        definition section:
+
+         - declarations of tokens used in the grammar
+         - the types of values used on the parser stack
+         - literal c code enclosed in %{ }%
+    */
+
     %{
         /* C declarations and includes */
     }%
+
+    /* rules section */
 
     %%
         /* Yacc Spec in the form of grammar rules like this: */
@@ -25,13 +118,198 @@ Yacc 规范骨架：
                 ;
     %%
 
-每个语法规则定义一个 symbol。每个语法规则可以关联某个动作，这个动作在规则的所有符号都被解析后执行。
+    /* user subroutines code section */
+
+#### Definition Section
+
+Definition 小节定义语法中使用的 tokens，类型的 values 及其他，还可以包括封装在 %{ ... }% 中的 c 代码。
+
+##### 定义 token/symbols: %token, %type
+
+每个 symbol 都有值，表示该符号的额外意义。 如果symbol表示数字，则其值为该数字值；如果symbol表示字符串，则其值为
+字符串指针；如果symbol表示程序变量，则其值为描述该变量的符号表的entry指针。
+
+非终结符可以有任意值。通常非终结符reduce规则的动作代码根据输入构建一个 parse tree。
+
+不同的符号有不同的值，不同的值有不同的数据类型。当有多种数据类型时，使用 C union YYSTYPE 声明所有的类型。 缺省 Yacc
+认为所有symbol值的类型都是 int。
+
+    %token NAME NUMBER      // 声明了2个符号token，类型为默认值 int。
+
+如果需要定义不同类型的 token，则需要先定义 %union（下节），然后使用 union 中的类型定义 token 的类型。使用 <...> 将union
+中的类型括起来。
+
+    %token <vblno> NAME     // 定义终结符 Name，其类型为 vblno （union中定义）
+    %token <dval>  NUMBER   // 定义终结符 NUMBER，其类型为 dval（union中定义）
+
+    %type  <dval>  expression   // 定义非终结符 expression 的数据类型
+
+##### 定义  %union 和符号值
+
+%union 声明定义 YYSTYPE 类型，用于定义 yylval 变量。
+
+    %union {
+        double dval;
+        int vblno;
+    }
+
+    生成的 y.tab.h：
+
+    typedef union {
+        double dval;
+        int vblno;
+    } YYSTYPE;
+
+    extern YYSTYPE yylval;
+
+在 action 代码中， Yacc 自动使用正确的 union field name（根据 symbol 的类型）。例如如果第三个符号是 NUMBER，则 $3 在生成
+的代码中自动变为 $3.dval。
+
+Yacc 可以自动使用 field value，但是lex不能自动识别应该使用哪个field，所以lex中需要使用类似 yylval.dval = atof(yytext) 之类的代码。
+
+##### 定义优先级和结合规则
+
+    %token NAME NUMBER  // 声明2个符号 token
+    %left '-' '+'       // 两个左结合的操作符，优先级顺序和定义顺序相关，越后面的越高优先级
+    %left '*' '/'       // 两个左结合的操作符，优先级高于上面的操作符
+    %nonassoc UMINUS    // 没有结合性的一元操作符
+
+优先级不是解决所有 shift/reduce 冲突的通用办法，通常仅仅用它来处理 expression 语法歧义和 “dangling else” 歧义。 对于其他
+歧义情况，说明语言设计的有潜在问题，建议通过修改语言的歧义来解决冲突。
+
+#### Rule Section
+
+使用 %% 开始， %% 结束的规则定义部分。
+
+规则代码中，可以使用 $1, $2 等访问 RHS 符号的值，$$ 表示 LHS，可以对其复制。
+
+如果一个 rule 没有任何 action，则Yacc执行：$$ = $1; 也就是将 RHS 的值赋值为 LHS 符号。
+
+
+### Yacc Shift/Reduce 解析
+
+* Shift：Yacc 生成的解析器的主要工作是匹配已经遇到的 tokens。每次读到一个 token，如果不匹配一个完整的 rule，则将 token 放入到
+一个内部栈中，然后切换到一个表示读入token后的新状态。
+* Reduce：当解析器遇到了一个完整规则的所有token后，它将栈中RHS的symbol移除，将 LHS 的符号压栈，并切换到一个新的状态。
+
+每当 Yacc reduce 一个规则时，执行规则对应的代码。
 
 ### Yacc Rules
+
+每个语法规则定义一个 symbol。每个语法规则可以关联某个动作，这个动作在规则的所有符号都被解析后执行。
+
+symbol 有两种，一种是终结符（terminal symbol，也即 tokens），另一种是非终结符（non-terminal symbol）。
+通常terminal符号使用大写字符，非终结符使用小写字符。
+
+默认第一个规则是最顶层的规则。可以使用 %start 显式定义root/start symbol.
 
 #### 语法规则
 
 Yacc 语法定义了那些 tokens seqences 是合法的。（语言学上的合法token序列）
+
+* 简单规则：
+
+        symbol : TOKEN TOKEN
+               ;
+
+* Alternate Rules
+
+        symbol : TOKEN TOKEN
+               | TOKEN TOKEN TOKEN
+               ;
+
+* 递归规则
+
+        symbol_x : symbol_y
+                 | symbol_x symbol_y
+
+* 空规则
+
+        default : /* empty */
+                | DEFAULT
+                ;
+
+#### Yacc 动作
+
+一旦匹配某个语法规则， parser立刻执行其对应的动作。
+
+Yacc 规则中的动作定义格式为：
+
+    menu_item   : LABEL EXEC '\n'
+                {
+                    C-program statements
+                }
+                ;
+
+Yacc 动作代码中可以访问 tokens 的语义值， 从 lexer 开始，每次lexer返回一个值，它设置外部变量 yylval 为 token 的值。
+Yacc 会保持 token 和其 yylval 间的对应关系。
+
+为了保存不同类型的 token， yylval 声明为 union 类型。 lexer 中使用 yytext 表示匹配的 token。
+
+##### Token 类型
+
+使用 `%union` 定义 Token 类型，例如：
+
+    %union {
+        char *str;
+        int num;
+    }
+
+这个例子定义了 yylval 是 (char *) 和 （int） 类型的 union。
+
+使用 `%token` 定义每个 token 的类型：
+
+    %token <str> LABEL      /* LABEL 这个token的类型是 str */
+    %token <str> EXEC
+    %token <num> INT        /* INT 这个token的类型是 num */
+
+关键字不需要使用 %token 定义类型。
+
+为了代码中正确的返回正确的类型，需要和 lexer 联合处理：
+
+    yylval.str = strdup(yytext);   // 处理 LABEL，EXEC 时, yytext 是当前token, 对于lexer而言是匹配模式的文本。
+
+    yylval.num = atoi(yytext);     // 处理 INT token 时。
+
+##### 在 Yacc 动作中使用 Token 类型
+
+使用 $1, $2 等访问 token 的value：
+
+    menu_item   :  LABEL EXEC
+                {
+                    itemptr = new_item();
+                    itemptr->label = $1;
+                    itemptr->command = $2;
+                }
+                ;
+
+Yacc 可以访问 non-terminal symbol 的值，例如上面的 default 非终结符：
+
+    %type <num> default
+
+    // 使用 $$ 赋值左边的rule
+
+    default : /* empty */
+            { $$ = 0; }
+            | DEFAULT
+            { $$ = 1; }
+            ;
+
+##### Type-casting tokens
+
+    { printf("add: %x\n", $<num>1); }
+
+##### Yacc 缺省行为
+
+    { $$ = $1 }
+
+也就是左边的值为右边第一个符号的值。
+
+### Yacc 生成parser
+
+* Yacc 生成一个名为 `yyparse()` 的函数。 这个函数不需要参数，返回0表示成功，1表示失败
+* yyerror(): Yacc 遇到不合法语法时调用
+
 
 ### References
 
