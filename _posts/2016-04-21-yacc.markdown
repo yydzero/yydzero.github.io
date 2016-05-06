@@ -311,6 +311,94 @@ Yacc 可以访问 non-terminal symbol 的值，例如上面的 default 非终结
 * yyerror(): Yacc 遇到不合法语法时调用
 
 
-### References
+## goyacc 调试
+
+`go tool yacc` 生成的 parser 结构体如下：
+
+    type yyParserImpl struct {
+        lval  yySymType
+        stack [16]yySymType
+        char  int
+    }
+
+    // 其中 yySymType 是使用 %union 生成的结构体：
+    type yySymType struct {
+        yys     int
+        id      int
+        str     string
+        pos     int
+        empyt   struct{}
+        union   myUnionType
+    }
+
+    yyParserImpl.stack 用以保存处理的和lookahead 的 token。
+
+parser 实现中是一个很大的 switch 语句，根据不同的 SQLnt，进入不同的分支，执行不同的行为：
+
+    switch SQLnt {
+    case 1:
+        yyDollar = yyS[yypt-1 : yypt+1]
+        {
+            yylex.(*scanner).stmts = yyDollar[1].union.stmts()
+        }
+
+    ...
+
+    case 86:
+        yyDollar = yyS[yypt-0 : yypt+1]
+        {
+        }
+
+    case
+
+    }
+
+    goto yystack        /* stack new state and value */
+
+上面代码的主要信息：
+
+    yyS 是一个数组，指向的是 yyParserImpl 结构体中的 stack，其中的元素是 %union 定义的 yySymType 类型。
+
+    yyDollar 是 yyParserImpl.stack 上面的 slice。 这个slice对应于 gram 中的 $1, $2, 等等变量。
+    譬如 $1.orders() 的代码是：  yyDollar[1].union.orders().
+
+Left Value:
+
+    SQLVAL = SQLS[SQLp+1]
+
+    ...
+
+    case 229:
+    		SQLDollar = SQLS[SQLpt-1 : SQLpt+1]
+    		log.Printf("%v, %v, %v\n", SQLDollar[0], SQLDollar[1], SQLDollar[2])
+    		//line gram.y:1721
+    		{
+    			SQLVAL.union.val = &IntVal{Val: SQLDollar[1].union.ival().Val, Str: SQLDollar[1].union.ival().Str}
+    		}
+
+SQLVAL 表示栈顶的值，当发生 reduce 时，会pop RHS，并压入 LHS 的值。
+
+### goyacc sample test
+
+#### SELECT 1
+
+    Reduce:
+        opt_all_clause:                                 SQLDollar = SQLS[SQLpt-0 : SQLpt+1]
+            ALL {}
+            | /* EMPTY */ {}
+
+        a_expr_const:
+            ICONST
+                {
+                    $$.val = &IntVal{Val: $1.ival().Val, Str: $1.ival().Str}
+                }
+
+        c_expr:             // 没有 reduce 的 case 语句，意味着什么那？ 和前面的空操作有什么不同？
+            | a_expr_const
+
+
+## References
 
 * https://luv.asn.au/overheads/lex_yacc/yacc.html
+* [The Implementation and Power of Programming Languages](http://www.cs.man.ac.uk/~pjj/cs212/ho/ho.html)
+* [How to](http://tldp.org/HOWTO/Lex-YACC-HOWTO-7.html)
