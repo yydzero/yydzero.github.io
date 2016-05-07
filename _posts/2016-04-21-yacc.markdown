@@ -529,6 +529,6 @@ Troubleshooting tips:
 
 ## References
 
-* https://luv.asn.au/overheads/lex_yacc/yacc.html
+* [Yacc Intro](https://luv.asn.au/overheads/lex_yacc/yacc.html)
 * [The Implementation and Power of Programming Languages](http://www.cs.man.ac.uk/~pjj/cs212/ho/ho.html)
 * [How to](http://tldp.org/HOWTO/Lex-YACC-HOWTO-7.html)
