@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Greenplum Database Content on Youtube?"
+title:  "Greenplum Database Content on Youtube"
 subtitle: Greenplum 数据库系列视频
 author: 姚延栋
 date:   2016-04-28 16:49

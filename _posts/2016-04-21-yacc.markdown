@@ -4,7 +4,7 @@ title:  "Yacc"
 author: 姚延栋
 date:   2016-04-21 21:20:43
 categories: yacc
-published: false
+published: true
 ---
 
 # Lex & Yacc
@@ -313,6 +313,12 @@ Yacc 可以访问 non-terminal symbol 的值，例如上面的 default 非终结
 
 ## goyacc 调试
 
+### 启动调试选项
+
+设置 `yyDebug` 为非零数字，则 parser 会根据yyDebug的值，输出 lex 和 parse 的过程。对调试非常有帮助。
+
+### 主要数据结构和变量
+
 `go tool yacc` 生成的 parser 结构体如下：
 
     type yyParserImpl struct {
@@ -396,6 +402,130 @@ SQLVAL 表示栈顶的值，当发生 reduce 时，会pop RHS，并压入 LHS �
         c_expr:             // 没有 reduce 的 case 语句，意味着什么那？ 和前面的空操作有什么不同？
             | a_expr_const
 
+        a_expr:
+            c_expr          // no action
+
+    // 至此，常数1 -> a_expr，parser 继续处理，需要shift，发现了 EOF。
+
+        target_elem:
+            a_expr
+                {
+                    $$.val = SelectExpr{Expr: $1.expr()}        // 把 a_expr 转换成 SelectExpr
+                }
+
+        target_list:
+            target_elem
+                {
+                    $$.val = SelectExprs{$1.selExpr()}
+                }
+
+        from_clause:
+            | /* EMPTY */
+                {
+                    $$.val = TableExprs(nil)
+                }
+
+        where_clause:
+            | /* EMPTY */
+                {
+                $$.val = Expr(nil)
+                }
+
+        group_clause:
+            | /* EMPTY */
+                {
+                    $$.val = GroupBy(nil)
+                }
+
+        having_clause:
+            | /* EMPTY */
+                {
+                    $$.val = Expr(nil)
+                }
+
+        window_clause:
+            | /* EMPTY */ {}
+
+
+        reduce 67:
+
+        simple_select:
+            SELECT opt_all_clause target_list from_clause where_clause group_clause having_clause window_clause
+                {
+                    $$.val = &SelectClause{
+                        Exprs:      $3.selExprs(),
+                        From:       $4.tblExprs(),
+                        Where:      newWhere(astWhere, $5.expr()),
+                        GroupBy:    $6.groupBy(),
+                        Having:     newWhere(astHaving, $7.expr()),
+                    }
+                }
+
+            // Got following struct after reduced:
+            SelectClause:  {
+                "Distinct": false,
+                "Exprs": [
+                    {
+                        "Expr": {
+                            "Val": 1,
+                            "Str": "1"
+                        },
+                        "As": ""
+                    }
+                ],
+                "From": null,
+                "Where": null,
+                "GroupBy": null,
+                "Having": null,
+                "Lock": ""
+            }
+
+        reduce 59:
+        select_no_parens:
+            simple_select
+
+        reduce 55:
+        select_stmt:
+            select_no_parens %prec UMINUS
+                {
+                    log.Printf("4. $1 = %v\n", $1.slct())
+                    $$.val = $1.slct()
+                }
+
+        stmt:
+            | select_stmt
+                {
+                    $$.val = $1.slct()
+                }
+
+        stmt_list:
+            | stmt
+                {
+                    if $1.stmt() != nil {
+                        $$.val = []Statement{$1.stmt()}
+                    } else {
+                        $$.val = []Statement(nil)
+                    }
+                }
+
+        stmt_block:
+            stmt_list
+                  {
+                        SQLlex.(*scanner).stmts = $1.stmts()
+                  }
+
+
+
+Troubleshooting tips:
+
+    // Problem is Select is assigned to nil, and String() will panic.
+
+    log.Println("SELECT val: ",             SQLDollar[1].union.val)
+    log.Println("SELECT val TypeOf: ",      reflect.TypeOf(SQLDollar[1].union.val))
+    log.Println("SELECT selectStatement: ", SQLDollar[1].union.selectStmt())
+    log.Println("SELECT slct: ",            SQLDollar[1].union.slct())
+
+    SQLVAL.union.val = &Subquery{Select: SQLDollar[1].union.selectStmt()}
 
 ## References
 
