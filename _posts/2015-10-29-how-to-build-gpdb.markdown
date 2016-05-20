@@ -37,6 +37,9 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
 	$ easy_install pip
 	$ pip install psi paramiko
 
+    由于 https://github.com/greenplum-db/gpdb/pull/486， 需要使用 psutil package.
+	$ sudo yum install python-psutil
+
 ### 3. 编译 Greenplum Database 源代码并安装
 
 #### 3.1 假定安装到 $HOME/gpdb.master 目录下

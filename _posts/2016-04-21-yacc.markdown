@@ -4,7 +4,7 @@ title:  "Yacc"
 author: 姚延栋
 date:   2016-04-21 21:20:43
 categories: yacc
-published: false
+published: true
 ---
 
 # Lex & Yacc
@@ -311,6 +311,224 @@ Yacc 可以访问 non-terminal symbol 的值，例如上面的 default 非终结
 * yyerror(): Yacc 遇到不合法语法时调用
 
 
-### References
+## goyacc 调试
 
-* https://luv.asn.au/overheads/lex_yacc/yacc.html
+### 启动调试选项
+
+设置 `yyDebug` 为非零数字，则 parser 会根据yyDebug的值，输出 lex 和 parse 的过程。对调试非常有帮助。
+
+### 主要数据结构和变量
+
+`go tool yacc` 生成的 parser 结构体如下：
+
+    type yyParserImpl struct {
+        lval  yySymType
+        stack [16]yySymType
+        char  int
+    }
+
+    // 其中 yySymType 是使用 %union 生成的结构体：
+    type yySymType struct {
+        yys     int
+        id      int
+        str     string
+        pos     int
+        empyt   struct{}
+        union   myUnionType
+    }
+
+    yyParserImpl.stack 用以保存处理的和lookahead 的 token。
+
+parser 实现中是一个很大的 switch 语句，根据不同的 SQLnt，进入不同的分支，执行不同的行为：
+
+    switch SQLnt {
+    case 1:
+        yyDollar = yyS[yypt-1 : yypt+1]
+        {
+            yylex.(*scanner).stmts = yyDollar[1].union.stmts()
+        }
+
+    ...
+
+    case 86:
+        yyDollar = yyS[yypt-0 : yypt+1]
+        {
+        }
+
+    case
+
+    }
+
+    goto yystack        /* stack new state and value */
+
+上面代码的主要信息：
+
+    yyS 是一个数组，指向的是 yyParserImpl 结构体中的 stack，其中的元素是 %union 定义的 yySymType 类型。
+
+    yyDollar 是 yyParserImpl.stack 上面的 slice。 这个slice对应于 gram 中的 $1, $2, 等等变量。
+    譬如 $1.orders() 的代码是：  yyDollar[1].union.orders().
+
+Left Value:
+
+    SQLVAL = SQLS[SQLp+1]
+
+    ...
+
+    case 229:
+    		SQLDollar = SQLS[SQLpt-1 : SQLpt+1]
+    		log.Printf("%v, %v, %v\n", SQLDollar[0], SQLDollar[1], SQLDollar[2])
+    		//line gram.y:1721
+    		{
+    			SQLVAL.union.val = &IntVal{Val: SQLDollar[1].union.ival().Val, Str: SQLDollar[1].union.ival().Str}
+    		}
+
+SQLVAL 表示栈顶的值，当发生 reduce 时，会pop RHS，并压入 LHS 的值。
+
+### goyacc sample test
+
+#### SELECT 1
+
+    Reduce:
+        opt_all_clause:                                 SQLDollar = SQLS[SQLpt-0 : SQLpt+1]
+            ALL {}
+            | /* EMPTY */ {}
+
+        a_expr_const:
+            ICONST
+                {
+                    $$.val = &IntVal{Val: $1.ival().Val, Str: $1.ival().Str}
+                }
+
+        c_expr:             // 没有 reduce 的 case 语句，意味着什么那？ 和前面的空操作有什么不同？
+            | a_expr_const
+
+        a_expr:
+            c_expr          // no action
+
+    // 至此，常数1 -> a_expr，parser 继续处理，需要shift，发现了 EOF。
+
+        target_elem:
+            a_expr
+                {
+                    $$.val = SelectExpr{Expr: $1.expr()}        // 把 a_expr 转换成 SelectExpr
+                }
+
+        target_list:
+            target_elem
+                {
+                    $$.val = SelectExprs{$1.selExpr()}
+                }
+
+        from_clause:
+            | /* EMPTY */
+                {
+                    $$.val = TableExprs(nil)
+                }
+
+        where_clause:
+            | /* EMPTY */
+                {
+                $$.val = Expr(nil)
+                }
+
+        group_clause:
+            | /* EMPTY */
+                {
+                    $$.val = GroupBy(nil)
+                }
+
+        having_clause:
+            | /* EMPTY */
+                {
+                    $$.val = Expr(nil)
+                }
+
+        window_clause:
+            | /* EMPTY */ {}
+
+
+        reduce 67:
+
+        simple_select:
+            SELECT opt_all_clause target_list from_clause where_clause group_clause having_clause window_clause
+                {
+                    $$.val = &SelectClause{
+                        Exprs:      $3.selExprs(),
+                        From:       $4.tblExprs(),
+                        Where:      newWhere(astWhere, $5.expr()),
+                        GroupBy:    $6.groupBy(),
+                        Having:     newWhere(astHaving, $7.expr()),
+                    }
+                }
+
+            // Got following struct after reduced:
+            SelectClause:  {
+                "Distinct": false,
+                "Exprs": [
+                    {
+                        "Expr": {
+                            "Val": 1,
+                            "Str": "1"
+                        },
+                        "As": ""
+                    }
+                ],
+                "From": null,
+                "Where": null,
+                "GroupBy": null,
+                "Having": null,
+                "Lock": ""
+            }
+
+        reduce 59:
+        select_no_parens:
+            simple_select
+
+        reduce 55:
+        select_stmt:
+            select_no_parens %prec UMINUS
+                {
+                    log.Printf("4. $1 = %v\n", $1.slct())
+                    $$.val = $1.slct()
+                }
+
+        stmt:
+            | select_stmt
+                {
+                    $$.val = $1.slct()
+                }
+
+        stmt_list:
+            | stmt
+                {
+                    if $1.stmt() != nil {
+                        $$.val = []Statement{$1.stmt()}
+                    } else {
+                        $$.val = []Statement(nil)
+                    }
+                }
+
+        stmt_block:
+            stmt_list
+                  {
+                        SQLlex.(*scanner).stmts = $1.stmts()
+                  }
+
+
+
+Troubleshooting tips:
+
+    // Problem is Select is assigned to nil, and String() will panic.
+
+    log.Println("SELECT val: ",             SQLDollar[1].union.val)
+    log.Println("SELECT val TypeOf: ",      reflect.TypeOf(SQLDollar[1].union.val))
+    log.Println("SELECT selectStatement: ", SQLDollar[1].union.selectStmt())
+    log.Println("SELECT slct: ",            SQLDollar[1].union.slct())
+
+    SQLVAL.union.val = &Subquery{Select: SQLDollar[1].union.selectStmt()}
+
+## References
+
+* [Yacc Intro](https://luv.asn.au/overheads/lex_yacc/yacc.html)
+* [The Implementation and Power of Programming Languages](http://www.cs.man.ac.uk/~pjj/cs212/ho/ho.html)
+* [How to](http://tldp.org/HOWTO/Lex-YACC-HOWTO-7.html)
