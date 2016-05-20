@@ -30,6 +30,7 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     $ wget https://bootstrap.pypa.io/get-pip.py
     $ sudo python get-pip.py
     $ sudo pip install psi lockfile paramiko setuptools epydoc
+	$ sudo pip install psutil (required after mid-April 2016)
 
 	另一种安装python库的方法是:
 	$ yum install -y python-setuptools
