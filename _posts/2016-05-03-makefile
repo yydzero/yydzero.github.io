@@ -1,0 +1,3 @@
+==> override directive: if a variable is specified through make command argument,
+	then define of this variable in makefile would be take effect; if you want to
+	modify this variable in makefile, you should use override directive

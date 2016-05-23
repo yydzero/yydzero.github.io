@@ -1,0 +1,194 @@
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
+
+#include "waiter_test_wrap.h"
+#include "chef.h"
+
+/*
+ * This is a mocked Chef object. A real Chef would look if he knows
+ * the dish in some kind of internal database and check his storage for
+ * ingredients. This chef simply retrieves this information from the test
+ * that is calling him.
+ *
+ * This object is also wrapped - if any code links with this file and is
+ * compiled with linker option --wrap chef_cook, any calls of that code to
+ * chef_cook will end up calling __wrap_chef_cook.
+ *
+ * If for any reason the wrapped function wanted to call the real chef_cook()
+ * function, it could do so by calling the special symbol __real_chef_cook().
+ *
+ * Please note that when setting return codes for the chef_cook function, we
+ * use this wrapper as a parameter for the will_return() macro, not the
+ * real function.
+ *
+ * A chef object would return:
+ * 0 - cooking dish went fine
+ * -1 - unknown dish
+ * -2 - ran out of ingredients for the dish
+ * any other error code -- unexpected error while cooking
+ *
+ * The return codes should be consistent between the real and mocked objects.
+ */
+int __wrap_chef_cook(const char *order, char **dish_out)
+{
+    bool has_ingredients;
+    bool knows_dish;
+    char *dish;
+
+    check_expected_ptr(order); // paired with expect_string(__wrap_chef_cook, order, "hotdog");
+
+    knows_dish = mock_type(bool); // paired with will_return(__wrap_chef_cook, true); this is a FIFO queue
+    if (knows_dish == false) {
+        return -1;
+    }
+
+    has_ingredients = mock_type(bool);
+    if (has_ingredients == false) {
+        return -2;
+    }
+
+    dish = mock_ptr_type(char *); // paired with will_return(__wrap_chef_cook, cast_ptr_to_largest_integral_type("burger"));
+    *dish_out = strdup(dish);
+    if (*dish_out == NULL)
+		return ENOMEM;
+
+    return mock_type(int);
+}
+
+/* Waiter return codes:
+ *  0  - success
+ * -1  - kitchen failed
+ * -2  - kitchen succeeded, but cooked a different food
+ */
+static int waiter_process(const char *order, char **dish)
+{
+    int rv;
+
+    rv = chef_cook(order, dish);
+    if (rv != 0) {
+        fprintf(stderr, "Chef couldn't cook %s: %s\n",
+                order, chef_strerror(rv));
+        return -1;
+    }
+
+    /* Check if we received the dish we wanted from the kitchen */
+    if (strcmp(order, *dish) != 0) {
+        free(*dish);
+        *dish = NULL;
+        return -2;
+    }
+
+    return 0;
+}
+
+static void test_order_hotdog(void **state)
+{
+    int rv;
+    char *dish;
+
+    (void) state; /* unused */
+
+    /* We expect the chef to receive an order for a hotdog */
+    expect_string(__wrap_chef_cook, order, "hotdog");
+    /* And we tell the test chef that ke knows how to cook a hotdog
+     * and has the ingredients
+     */
+    will_return(__wrap_chef_cook, true);
+    will_return(__wrap_chef_cook, true);
+    /* The result will be a hotdog and the cooking process will succeed */
+    will_return(__wrap_chef_cook, cast_ptr_to_largest_integral_type("hotdog"));
+    will_return(__wrap_chef_cook, 0);
+
+    /* Test the waiter */
+    rv = waiter_process("hotdog", &dish);
+
+    /* We expect the cook to succeed cooking the hotdog */
+    assert_int_equal(rv, 0); // check the status of the function call
+    /* And actually receive one */
+    assert_string_equal(dish, "hotdog");
+    if (dish != NULL) {
+        free(dish);
+    }
+}
+
+static void test_bad_dish(void **state)
+{
+    int rv;
+    char *dish;
+
+    (void) state; /* unused */
+
+    /* We expect the chef to receive an order for a hotdog */
+    expect_string(__wrap_chef_cook, order, "hotdog");
+    /* And we tell the test chef that ke knows how to cook a hotdog
+     * and has the ingredients
+     */
+    will_return(__wrap_chef_cook, true);
+    will_return(__wrap_chef_cook, true);
+    /* The result will be a burger and the cooking process will succeed.
+     * We expect the waiter to handle the bad dish and return an error
+     * code
+     */
+    will_return(__wrap_chef_cook, cast_ptr_to_largest_integral_type("burger"));
+    will_return(__wrap_chef_cook, 0);
+
+    /* Test the waiter */
+    rv = waiter_process("hotdog", &dish);
+
+    /* According to the documentation the waiter should return -2 now */
+    assert_int_equal(rv, -2);
+    /* And do not give the bad dish to the customer */
+    assert_null(dish);
+}
+
+int main(void)
+{
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_order_hotdog),
+        cmocka_unit_test(test_bad_dish),
+    };
+
+    return cmocka_run_group_tests(tests, NULL, NULL);
+}
+
+
+As CMocka is a framework for C, mock objects normally replace functions: you have
+the actual implementation of a function and you want to replace it with your mock
+function. Consider the situation where a library contains an initialization function,
+in our example let's call it chef_init(), and some worker function, such as chef_cook()
+in the example above. You can't just mock one and use the other original function, as
+the same symbol name can't be used twice. There needs to be a way to trick the toolchain
+into using our mock worker function, but to keep using the original initialization function.
+
+The GNU Linker has the ability to define a wrapper function and call this wrapper
+function instead of the original function (the gold linker supports this feature, too).
+This allows us to replace our actual implementation of a function with a mock object in
+our test code.
+
+Keeping our chef example in mind, let's try to override the chef_cook() function. First,
+we need to define the wrapper. The name of the wrapper is always __wrap_symbol(), so our
+mock function will now be named __wrap_chef_cook(). That's a simple search-and-replace in
+the code, but please keep in mind that the will_return() macros that define what the mock()
+routines return will also need to change their argument to use the wrapper.
+
+The second step is actually telling the linker to call __wrap_chef_cook() whenever the
+program would call chef_cook(). This is done by using the --wrap linker option which
+takes the name of the wrapped function as an argument. If the test was compiled using gcc,
+the invocation might look like:
+    $ gcc -g -Wl,--wrap=chef_cook waiter_test.c chef.c -l cmocka -L /usr/local/lib(where the library is intalled)
+
+Another nice feature of the wrap trick is that you can even call the original function
+from the wrapper — just call a symbol named __real_symbol(), in our case, the test could
+call the original function by making a call to __real_chef_cook(). This trick is useful
+for keeping track of when a particular function was called, or for performing some kind
+of bookkeeping during the test.
+
+CMocka is not fully thread safe and it is not the goal of it to be it.
