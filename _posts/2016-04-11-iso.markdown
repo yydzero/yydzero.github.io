@@ -1,3 +1,7 @@
+FOR POSTGRESQL
+HeapTupleSatisfiesMVCC in master branch is easier for reading, while for
+GetTransactionSnapshot REL9_2_STABLE is better
+
 ==> For SERIALIZABLE isolation level, there is only one snapshot for all
 	statements in the transation, the snapshot is taken in the first statement,
 	not BEGIN; BEGIN would take no snapshot as well as transaction id;
@@ -31,5 +35,4 @@
 
 ==> HeapTupleSatisfiesMVCC is not that easy to just check xmin in tuple header
 	with the snapshot(while the core idea is), there are other checks, such as
-	infomask(optimization of xmin/xmax), and even iterating the procArray in
-	TransactionIdIsInprogress;
+	infomask(optimization of xmin/xmax);
