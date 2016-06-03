@@ -1,0 +1,36 @@
+---
+layout: post
+title:  "devstack"
+subtitle: devstack
+author: 姚延栋
+date:   2016-06-03 11:49
+categories: openstack devstack
+published: false
+---
+
+## devstack
+
+	$ wget https://bootstrap.pypa.io/get-pip.py
+	$ sudo python get-pip.py
+	$ sudo pip install -U os-testr
+
+
+### setup
+
+	# adduser stack	// login as root
+	# echo "stack ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+	# su - stack
+
+	$ git clone https://git.openstack.org/openstack-dev/devstack
+	$ cd devstack
+	$ cat local.conf
+	[[local|localrc]]
+    ADMIN_PASSWORD=secret
+    DATABASE_PASSWORD=$ADMIN_PASSWORD
+    RABBIT_PASSWORD=$ADMIN_PASSWORD
+    SERVICE_PASSWORD=$ADMIN_PASSWORD
+    FLOATING_RANGE=192.168.1.224/27
+    FIXED_RANGE=10.11.12.0/24
+    FIXED_NETWORK_SIZE=256
+    
+	$ ./stack.sh
