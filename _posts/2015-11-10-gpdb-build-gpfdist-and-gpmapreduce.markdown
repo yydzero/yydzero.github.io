@@ -17,7 +17,8 @@ gpfdist 编译需要 libyaml-devel，然而默认的RHEL repo不包括 libyaml-d
 
 #### 注册 REDHAT 订阅
 
-    $ sudo subscription-manager register
+    $ unset HISTFILE  
+    $ sudo subscription-manager register --username <username> --password <password>
     $ sudo subscription-manager attach --auto
 
 #### 依赖

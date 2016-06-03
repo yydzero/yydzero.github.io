@@ -313,6 +313,8 @@ cn.startup(o): 启动握手处理，直到出错，或者 connection ready for q
 - Z: 获得事务状态，并进入 ready 状态。
 - A, N: 忽略了
 
+部分代码：
+
     	for {
     		t, r := cn.recv()
     		switch t {
@@ -462,14 +464,14 @@ cn.startup(o): 启动握手处理，直到出错，或者 connection ready for q
 
 ##### Prepare stmt
 
-   byte 0: 'P'
-   byte array: string st.name
-   byte array: query itself
-   2个字节: 0
-   D    // next('D')
-   S
-   stmt.name
-   S    // next('S')
+        byte 0: 'P'
+        byte array: string st.name
+        byte array: query itself
+        2个字节: 0
+        D    // next('D')
+        S
+        stmt.name
+        S    // next('S')
 
 ##### Queryer#Query 实现
 
