@@ -12,20 +12,22 @@ __Under Mac__:
 
 ## install
 
+```
     brew tap git-duet/tap
     brew install git-duet
+```
 
 ## config
 
 ```
-    ○ → cat ~/.git-authors
-    authors:
-       kl: Kuien Liu; kliu
-       hz: Haozhou Wang; hawang
-       yy: Yandong Yao; yyao
-    email:
-       domain: pivotal.io
- ```
+  ○ → cat ~/.git-authors
+  authors:
+     kl: Kuien Liu; kliu
+     hz: Haozhou Wang; hawang
+     yy: Yandong Yao; yyao
+  email:
+     domain: pivotal.io
+```
    
 ## usage
 
