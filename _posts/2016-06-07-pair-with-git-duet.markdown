@@ -10,12 +10,12 @@ published: true
 
 __Under Mac__:
 
-### install
+## install
 
     brew tap git-duet/tap
     brew install git-duet
 
-### config
+## config
 
 ```
     ○ → cat ~/.git-authors
@@ -27,11 +27,11 @@ __Under Mac__:
        domain: pivotal.io
  ```
    
-### usage
+## usage
 
-   almost the same with origin GIT, with a few diffs if you want to remain the pairing info.
+almost the same with origin GIT, with a few diffs if you want to remain the pairing info.
 
-#### a. before typing
+### a. before typing
 
 ```
 	$ git solo kl
@@ -51,7 +51,7 @@ OR
 
   Here, the first guy is Driver, while the second is Navigator.
 
-####  b. commit
+###  b. commit
 
 ```
 	$ git duet-commit
@@ -65,8 +65,9 @@ OR
 	    Signed-off-by: Haozhou Wang <hawang@pivotal.io>
 ```
 
-#### c. others
-   almost the same with origin GIT, with a few diffs for **git-revert** and **git-merge** if you want to remain the pairing info.
+### c. others
+
+almost the same with origin GIT, with a few diffs for **git-revert** and **git-merge** if you want to remain the pairing info.
 
 ```   
    git duet-revert
