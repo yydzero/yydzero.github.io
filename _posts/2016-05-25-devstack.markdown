@@ -5,14 +5,23 @@ subtitle: devstack
 author: 姚延栋
 date:   2016-06-03 11:49
 categories: openstack devstack
-published: false
+published: true
 ---
 
-## devstack
+## devstack: a quick tour to openstack
+
+### prepare python, pip and os-testr
 
 	$ wget https://bootstrap.pypa.io/get-pip.py
 	$ sudo python get-pip.py
 	$ sudo pip install -U os-testr
+
+### register RHEL repo
+
+If not register to RHEL, devstack.sh will report error when install packages.
+
+	$ sudo subscription-manager register --username <username> --password <password>
+	$ sudo subscription-manager attach --auto
 
 
 ### setup
@@ -34,3 +43,65 @@ published: false
     FIXED_NETWORK_SIZE=256
     
 	$ ./stack.sh
+	....
+	....
+	....
+
+	=========================
+    DevStack Component Timing
+    =========================
+    Total runtime         3146
+
+    run_process            44
+    pip_install           455
+    restart_apache_server   9
+    wait_for_service        9
+    yum_install           758
+    git_timed             1427
+    =========================
+
+
+
+    This is your host IP address: 192.168.177.139
+    This is your host IPv6 address: ::1
+    Horizon is now available at http://192.168.177.139/dashboard
+    Keystone is serving at http://192.168.177.139/identity/
+    The default users are: admin and demo
+    The password: secret
+    2016-06-04 02:49:02.610 | WARNING:
+    2016-06-04 02:49:02.610 | Using lib/neutron-legacy is deprecated, and it will be removed in the future
+    2016-06-04 02:49:02.610 | stack.sh completed in 3146 seconds.
+
+###
+
+	$ ./devstack/exercise.sh
+
+	....
+
+	+exercises/volumes.sh:main:211             timeout 30 sh -c 'while nova list | grep -q 0e2a39c3-7bd1-418b-b7eb-74a119c512a4; do sleep 1; done'
+    +exercises/volumes.sh:main:215             [[ vol_secgroup = \d\e\f\a\u\l\t ]]
+    +exercises/volumes.sh:main:219             nova secgroup-delete vol_secgroup
+    +----+--------------+--------------------------+
+    | Id | Name         | Description              |
+    +----+--------------+--------------------------+
+    | 6  | vol_secgroup | vol_secgroup description |
+    +----+--------------+--------------------------+
+    +exercises/volumes.sh:main:222             set +o xtrace
+    *********************************************************************
+    SUCCESS: End DevStack Exercise: /home/stack/devstack/exercises/volumes.sh
+    *********************************************************************
+    =====================================================================
+    SKIP neutron-adv-test
+    SKIP swift
+    PASS aggregates
+    PASS client-args
+    PASS client-env
+    PASS sec_groups
+    PASS volumes
+    FAILED boot_from_volume
+    FAILED floating_ips
+    =====================================================================
+
+### Dashboard
+
+	http://192.168.177.139/dashboard/project/instances/
