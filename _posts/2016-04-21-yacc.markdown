@@ -527,6 +527,16 @@ Troubleshooting tips:
 
     SQLVAL.union.val = &Subquery{Select: SQLDollar[1].union.selectStmt()}
 
+## Issues
+
+### default action causes potential type clash: gram.y:893
+
+    894 set_clause:
+    895    single_set_clause
+    896    | multiple_set_clause
+
+这是因为没有定义 single_set_clause 非终结符，及其类型。
+
 ## References
 
 * [Yacc Intro](https://luv.asn.au/overheads/lex_yacc/yacc.html)
