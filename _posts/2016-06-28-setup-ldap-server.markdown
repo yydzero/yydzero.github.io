@@ -9,7 +9,7 @@ published: true
 
 # Install and Setup LDAP server
 
-## Install LDAP 
+## Install LDAP
 
 Remove old LDAP data if exists:
 
@@ -92,7 +92,6 @@ following example.ldif will create two ou (People, Groups) and rootdn: gpadmin
 	objectclass: organizationalRole
 	cn: gpadmin
 
-
 	$ ldapadd -vvv -x -D "cn=admin,dc=pivotal,dc=io" -w changeme -f example.ldif
 
 	$ ldapsearch -x -b 'dc=pivotal,dc=io' '(objectclass=*)'
@@ -122,7 +121,7 @@ following example.ldif will create two ou (People, Groups) and rootdn: gpadmin
     objectclass: inetOrgPerson
     uid: ldapsuser
     cn: ldapsuser
-    sn: ldapsuser		 
+    sn: ldapsuser
 
 Load user account into LDAP server.
 
@@ -154,7 +153,7 @@ Verify works using normal user credential:
 	$ openssl genrsa -out server.key
 
 	// create a certificate request:
-	// Note: Here need to use server's hostname as part of input (cn) when creating server.csr.  
+	// Note: Here need to use server's hostname as part of input (cn) when creating server.csr.
 	// Also need to use FQDN, could get it using 'hostname -f'
 
 	$ openssl req -new -key server.key -out server.csr
@@ -174,21 +173,20 @@ Verify works using normal user credential:
 	replace: olcTLSCACertificatePath
 	olcTLSCACertificatePath: /etc/openldap/certs
 	-
-	-replace: olcTLSCACertificateFile
+	replace: olcTLSCACertificateFile
 	olcTLSCACertificateFile: /etc/openldap/certs/CA.crt
 	-
-	-replace: olcTLSCertificateFile
+	replace: olcTLSCertificateFile
 	olcTLSCertificateFile: /etc/openldap/certs/server.crt
 	-
-	-replace: olcTLSCertificateKeyFile
+	replace: olcTLSCertificateKeyFile
 	olcTLSCertificateKeyFile: /etc/openldap/certs/server.key
 	-
-	-replace: olcTLSCipherSuite
+	replace: olcTLSCipherSuite
 	olcTLSCipherSuite: HIGH:MEDIUM:+SSLv2
 
 	// setup LDAP SSL config
 	$ sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f ssl.ldif
-
 
 ### Config OpenLDAP Client:
 
@@ -199,7 +197,7 @@ Change OpenLDAP client config file: ldap.conf with following line:
 
 ### Test LDAP with SSL/TLS
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' '(objectclass=\*)' -ZZ
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' '(objectclass=*)' -ZZ
 
 ### Test bind and search
 
@@ -207,7 +205,7 @@ Change OpenLDAP client config file: ldap.conf with following line:
 	// -D: bind
 	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -ZZ -LLL -w changeme
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=tlsuser,dc=pivotal,dc=io' '(uid=plainuser)' -ZZ -LLL -w changeme
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=tlsuser,dc=pivotal,dc=io' '(uid=plainuser)' -ZZ -LLL -w changeme
 
 ### verify certificate (optional)
 
@@ -219,13 +217,13 @@ Change OpenLDAP client config file: ldap.conf with following line:
 
 	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g180>
 
-#### with SSL: 
+#### With SSL
 
 firstly it will fail, because we have not setup certificate yet.
 
 	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g180> -ZZ
-	 ldap\_start\_tls: Connect error (-11) additional info: <a href="http://error:14090086:SSL" class="external-link">error:14090086:SSL</a>
-	routines:SSL3\_GET\_SERVER\_CERTIFICATE:certificate verify failed
+	ldap_start_tls: Connect error (-11) additional info: <a href="http://error:14090086:SSL" class="external-link">error:14090086:SSL</a>
+	routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed
 
 copy CA.crt to client and verify both of them has same hostname (g180 -> g0), then it works using same command.
 
@@ -233,13 +231,13 @@ copy CA.crt to client and verify both of them has same hostname (g180 -> g0), th
 
 use a new user instead of admin
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=plainuser,ou=People,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g0> -ZZ
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=plainuser,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g0> -ZZ
 
 ### enable OpenLDAP Log: Use syslog on Linux/Unix, olcLogFile on Windows.
 
 Add following line to /etc/rsyslog.conf
 
-	local4.\* /var/log/ldap.log
+	local4.* /var/log/ldap.log
 
 	$ service rsyslog restart
 	$ service slapd restart
@@ -257,17 +255,16 @@ Add following line to /etc/rsyslog.conf
 	olcLoglevel: Sync
 
 	// change loglevel dynamically
-	$ ldapmodify -x -D 'cn=config' -W -f newloglevel.ldif
-
- 
+	$ sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f newloglevel.ldif
+	$ ldapmodify -x -D 'cn=admin,dc=pivotal,dc=io' -w changeme -f newloglevel.ldif
 
 ### Verify LDAPS works
 
 ldaps:// is deprecated by default in OpenLDAP 2.4+, while you could still enable it by running following command.
 
-	$ /usr/local/libexec/slapd -d 1000 -h "ldap:/// ldaps:///"
+	# slapd -d 1000 -h "ldap:/// ldaps:///"
 
-	$ ldapsearch -x -W -H <ldaps://localhost:636> -D "uid=tlsuser,dc=pivotal,dc=io" -b "dc=pivotal,dc=io" cn
+	$ ldapsearch -x -W -H ldaps://localhost:636 -D "uid=tlsuser,dc=pivotal,dc=io" -b "dc=pivotal,dc=io" cn
 
 ## How to troubleshooting issues with ldap
 
@@ -283,8 +280,7 @@ $HOME/.ldaprc. GPDB LDAP lib will NOT read /etc/openldap/ldap.conf
 
 	$ cp /etc/openldap/ldap.conf ~/.ldaprc
 
- 
-### Update GPDB pg_hba.conf.  
+### Update GPDB pg_hba.conf
 
 Pay attention of ldapserver, if you are using domain name when generating server certification above, please use FQDN also here. (output of 'hostname -f'). Change g0 to your LDAP server name.
 
@@ -295,7 +291,7 @@ Pay attention of ldapserver, if you are using domain name when generating server
 
 OpenLDAP 2.4 will not listen on 636 by default, instead it uses TLS on 389 also.
 
-	Edit /etc/sysconfig/ldap
- 	Set SLAPD_LDAPS=yes
+	// edit /etc/sysconfig/ldap
+	Set SLAPD_LDAPS=yes
 
 	$ service slapd restart
