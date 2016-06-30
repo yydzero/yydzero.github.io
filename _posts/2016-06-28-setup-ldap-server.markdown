@@ -209,7 +209,7 @@ Change OpenLDAP client config file: ldap.conf with following line:
 
 ### verify certificate (optional)
 
-	$ openssl verify -purpose sslserver -CAfile certs/CA.crt certs/server.crt
+	$ openssl verify -purpose sslserver -CAfile CA.crt server.crt
 	certs/server.crt: OK
 
 ### verify on another machine
@@ -259,7 +259,7 @@ Add following line to /etc/rsyslog.conf
 	// or
 	# ldapmodify -x -D 'cn=admin,dc=pivotal,dc=io' -w changeme -f newloglevel.ldif
 
-### Verify LDAPS works
+### Verify LDAPS works (optional, only needed with ldaps)
 
 ldaps:// is deprecated by default in OpenLDAP 2.4+, while you could still enable it by running following command.
 
@@ -288,7 +288,7 @@ Pay attention of ldapserver, if you are using domain name when generating server
 	host  all  tlsuser 0.0.0.0/0 ldap ldapserver=g0 ldaptls=1 ldapprefix="uid=" ldapsuffix=",dc=pivotal,dc=io"
 	host  all  admin   0.0.0.0/0 ldap ldapserver=10.103.220.57 ldapbasedn="dc=pivotal,dc=io" ldapbinddn="dc=pivotal,dc=io" ldapbindpasswd="changeme" ldapsearchattribute="uid"
 
-## Enable slapds:// on OpenLDAP 2.4
+## Enable slapds:// on OpenLDAP 2.4 (optional and not recommended)
 
 OpenLDAP 2.4 will not listen on 636 by default, instead it uses TLS on 389 also.
 
