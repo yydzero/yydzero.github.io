@@ -45,6 +45,43 @@ This command says users want to enable an injector named "StartPrepareTx" in hos
 
 More usage can refer to gp_faultinjector --help
 
+### Example of fault injection
+
+Following is an example log when fault name 'workfile_creation_failure' with type 'error' triggered. 
+
+fault triggered, fault name:'workfile_creation_failure' fault type:'error' (faultinjector.c:675)", ... , "faultinjector.c",675
+
+    2016-06-17 22:12:27.944750 CST,"yyao","zlib",p3441,th2080523024,"127.0.0.1","61226",2016-06-17 22:10:14 CST,697,con20,cmd15,seg0,slice2,,x697,sx1,"ERROR","XX000","fault triggered, fault name:'workfile_creation_failure' fault type:'error' (faultinjector.c:675)",,,,,,"SELECT COUNT(t1.*) FROM test_zlib_hashjoin AS t1, test_zlib_hashjoin AS t2 WHERE t1.i1=t2.i2;",0,,"faultinjector.c",675,"Stack trace:
+    1    0x1065a1bde postgres errstart + 0x5ee
+    2    0x1065e005e postgres FaultInjector_InjectFaultIfSet + 0x6ee
+    3    0x106649d59 postgres workfile_mgr_create_fileno + 0xe9
+    4    0x1061b4005 postgres ExecHashJoinSaveTuple + 0xc5
+    5    0x1061afa37 postgres ExecHashTableInsert + 0x357
+    6    0x1061af2b1 postgres MultiExecHash + 0x141
+    7    0x106182907 postgres MultiExecProcNode + 0x367
+    8    0x1061b332b postgres ExecHashJoin + 0x28b
+    9    0x106182210 postgres ExecProcNode + 0x530
+    10   0x1061a61b3 postgres agg_retrieve_direct + 0x223
+    11   0x1061a59d9 postgres ExecAgg + 0x2d9
+    12   0x10618224f postgres ExecProcNode + 0x56f
+    13   0x1061d2edb postgres execMotionSender + 0x14b
+    14   0x1061d1f1e postgres ExecMotion + 0x1ce
+    15   0x1061822b8 postgres ExecProcNode + 0x5d8
+    16   0x106173ed3 postgres ExecutePlan + 0x193
+    17   0x106173a66 postgres ExecutorRun + 0x4d6
+    18   0x10640ff22 postgres PortalRunSelect + 0x152
+    19   0x10640f9e7 postgres PortalRun + 0x367
+    20   0x106409483 postgres exec_mpp_query + 0x1263
+    21   0x10640689c postgres PostgresMain + 0x166c
+    22   0x1063794b7 postgres BackendRun + 0x2f7
+    23   0x106378862 postgres BackendStartup + 0x192
+    24   0x106373a54 postgres ServerLoop + 0x554
+    25   0x106371baf postgres PostmasterMain + 0x155f
+    26   0x106247aa6 postgres main + 0x346
+    27   0x7fff92c8e5fd libdyld.dylib start + 0x1
+    28   0xf <symbol not found>
+    "
+
 
 ## Implementation of gpfaultinjector.
 
