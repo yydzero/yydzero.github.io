@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  "VIM Tips"
+subtitle:  "VIM 实用技巧"
 author: 姚延栋
 date:   2015-12-19 23:20:43
 categories: vim

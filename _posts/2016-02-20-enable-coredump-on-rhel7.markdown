@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "开启 RHEL7 core dump"
+title:  "Enable RHEL7 core dump"
+subtitle:  "开启 RHEL7 core dump"
 author: 姚延栋
 date:   2016-02-20 14:20:43
 categories: makefile

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "如何在git界面上正常显示tab为4个空格"
+title:  "How to display 'tab' as '4 spaces' in GitHub"
+subtitle:  "如何在git界面上正常显示tab为4个空格"
 author: 刘奎恩 王淏舟
 date:   2016-04-05 12:47:24
 categories: tools git

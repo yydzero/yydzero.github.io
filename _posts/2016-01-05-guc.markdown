@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "如何为GPDB添加GUC"
+title:  "How to add new GUCs inner GPDB"
+subtitle:  "如何为GPDB添加GUC"
 author: 刘奎恩
 date:   2016-01-05 11:39:24
 categories: gpdb guc
@@ -8,7 +9,7 @@ published: true
 ---
 
 Grand Unified Configuration (GUC) 是控制 PostgreSQL/GPDB 运行时行为的一种可配置变量，
-可用于控制feature开关（例如enable_indexscan), 辅助调试（如debug_print_plan），feature相关参数（例如gp_hadoop_home) 等。
+可用于控制feature开关（例如enable\_indexscan), 辅助调试（如debug_print_plan），feature相关参数（例如gp_hadoop_home) 等。
 
 ### GUC 简介
 
@@ -28,7 +29,7 @@ Grand Unified Configuration (GUC) 是控制 PostgreSQL/GPDB 运行时行为的�
 
 规则：
 
-* INTERNAL: 不能由用户设置，只能通过内部进程设置（例如server_version)。SHOW 可以显示其变量值。
+* INTERNAL: 不能由用户设置，只能通过内部进程设置（例如server\_version)。SHOW 可以显示其变量值。
 * POSTMASTER：只能在postmaster启动时设置，通过配置文件或者命令行选项。
 * SIGHUP：配置参数只能在 postmaster 启动时设置，或者修改配置文件后发送 HUP 信号给 postmaster或backend进程。
 * BACKEND：配置参数可以在postmaster启动时设置，从配置文件设置，或者client建立连接是设置（例如通过libpq的 PGOPTIONS 变量）。已经

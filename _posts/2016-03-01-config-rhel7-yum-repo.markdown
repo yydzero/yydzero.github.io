@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "如何配置RHEL7上的yum repo"
+title:  "Update YUM repo in RHEL7 in China"
+subtitle:  "如何配置RHEL7上的yum repo"
 author: 刘奎恩 王淏舟
 date:   2016-03-01 18:01:24
 categories: rhel yum repo

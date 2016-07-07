@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "tmux"
+title:  "Introducation to tmux"
+subtitle:  "tmux介绍"
 author: 姚延栋
 date:   2015-12-09 17:20:43
 categories: tmux

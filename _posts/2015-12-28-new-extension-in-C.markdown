@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "用C语言扩展模块实现自己的UDF"
+title:  "GPDB: implement UDF using C"
+subtitle:  "用C语言扩展模块实现自己的UDF"
 author: 刘奎恩
 date:   2015-12-28 11:39:24
 categories: udf,extension

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB 中如何重载操作符"
+title:  "How to override operators in GPDB"
+subtitle:  "GPDB 中如何重载操作符"
 author: 姚延栋
 date:   2015-11-24 17:20:43
 categories: GPDB operator

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "gpdiff"
+title:  "gpdiff in GPDB testing"
+subtitle:  "通过gpdiff比较GPDB测试结果"
 author: 姚延栋
 date:   2015-12-25 23:20:43
 categories: gpdiff atmsort

@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  "Makefile debug"
+subtitle:  "如何Debyg那些Makefile文件"
 author: 姚延栋
 date:   2015-12-21 14:20:43
 categories: makefile

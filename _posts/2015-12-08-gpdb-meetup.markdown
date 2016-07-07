@@ -1,9 +1,10 @@
 ---
 layout: post
-title:  "首届Greenplum中国技术研讨会"
+title:  "1st Greemplum Meetup China"
+subtitle:  "首届Greenplum中国技术研讨会"
 author: 姚延栋
 date:   2015-12-08 10:20:43
-categories: GPDB Greenplum数据库 研讨会 Meetup
+categories: GPDB Meetup
 ---
 
 

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB: 编译 gpfdist 文件服务器"
+title:  "GPDB: compile gpfdist file server"
+subtitle:  "GPDB: 编译 gpfdist 文件服务器"
 author: 姚延栋
 date:   2015-12-18 10:20:43
 categories: gpdb gpfdist

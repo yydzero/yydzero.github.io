@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "gpcheckperf"
+title:  "gpcheckperf: a native performance detecting toolkit"
+subtitle:  "gpcheckperf性能检测工具"
 author: 姚延栋
 date:   2015-12-12 10:20:43
 categories: gpcheckperf

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "如何使man帮助带上彩色"
+title:  "Colorize MAN command display"
+subtitle:  "如何使man帮助带上彩色"
 author: 刘奎恩
 date:   2016-04-13 11:07:24
 categories: tools man terminal colorful

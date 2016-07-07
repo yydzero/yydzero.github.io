@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB: 使用外部表实现跨数据库数据读写"
+title:  "GPDB: achive cross-database query using External Table"
+subtitle:  "GPDB: 使用外部表实现跨数据库数据读写"
 author: 姚延栋
 date:   2015-12-16 09:20:43
 categories: gpdb external table crossdatabase

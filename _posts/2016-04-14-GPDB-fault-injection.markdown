@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB Fault Injection"
+title:  "gp\_faultinjector: GPDB Fault Injection"
+subtitle:  "GPDB 错误注入工具 gp\_faultinjector"
 author: TangPengzhou
 date:   2016-04-13 15:07:24
 categories: gpdb fault injection 

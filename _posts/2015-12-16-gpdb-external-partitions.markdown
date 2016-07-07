@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB: 外部表分区"
+title:  "GPDB: External Table Partition"
+subtitle:  "GPDB: 外部表分区"
 author: 姚延栋
 date:   2015-12-16 10:20:43
 categories: gpdb external table partition

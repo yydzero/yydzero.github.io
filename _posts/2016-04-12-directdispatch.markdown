@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB 优化器和 Direct Dispatch"
+title:  "GPDB Optimizor and Direct Dispatch"
+subtitle:  "GPDB 优化器和 Direct Dispatch"
 author: 姚延栋
 date:   2016-04-12 09:20:43
 categories: gpdb planner direct dispatch
@@ -14,7 +15,7 @@ GPDB 主要优化目的是通过各种级别的并行化提高OLAP类查询的�
 
 优化器的输出是 PlannedStmt 结构，它包括了描述查询如何执行的 Plan 树，以及 executor 需要的其他一些和执行状态无关的信息。
 
-* struct Plan *planTree
+* struct Plan \*planTree
 * 执行器需要的其他和状态无关的信息，例如 query_mem, memory account, slice table 等。
 
         typedef struct PlannedStmt

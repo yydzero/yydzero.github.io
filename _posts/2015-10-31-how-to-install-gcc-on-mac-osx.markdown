@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "在OSX 10.9上安装gcc"
+title:  "How to install GCC onto OSX 10.9"
+subtitle:  "在OSX 10.9上安装gcc"
 date:   2015-10-29 14:20:43
 categories: osx gcc
 ---

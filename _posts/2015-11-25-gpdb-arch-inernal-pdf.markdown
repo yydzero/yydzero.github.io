@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "开源大数据引擎：Greenplum数据库内核分析"
+title:  "Open-source Big-data Engine: Kernel Hacking of Greenplum Database"
+subtitle:  "开源大数据引擎：Greenplum数据库内核分析"
 author: 姚延栋
 date:   2015-11-25 17:20:43
 categories: GPDB bigdata kernel internal

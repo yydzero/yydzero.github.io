@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "如何编译开源 Greenplum Database (GPDB) 代码"
+title:  How to build open-sourced Greenplum Database (GPDB)
+subtitle:  "如何编译开源 Greenplum Database (GPDB) 代码"
 author: 姚延栋
 date:   2015-10-29 14:20:43
 categories: GPDB

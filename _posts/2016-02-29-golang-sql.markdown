@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "golang sql"
+title:  "SQL query in Golang"
+subtitle:  "golang中的sql语句"
 author: 姚延栋
 date:   2016-02-20 14:20:43
 categories: golang sql

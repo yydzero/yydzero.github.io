@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "golang 命令行工具"
+title:  "golang cli utilies"
+subtitle:  "golang 命令行工具"
 author: 姚延栋
 date:   2015-11-27 17:20:43
 categories: golang gopath package
@@ -20,7 +21,7 @@ gopath 被 import 语句用来解决路径问题。实现和文档在 go/build �
 
 * src/ 目录包含源代码， src 下面的路径名字决定了 import 路径或者执行文件名字。
 * pkg/ 目录包含安装的包。每个平台有自己对应的binary。 GOPATH/src/foo/bar 可以通过 foo/bar import，编译后
-代码为 GOPATH/pkg/GOOS_GOARCH/foo/bar.a
+代码为 GOPATH/pkg/GOOS\_GOARCH/foo/bar.a
 * bin/ 目录包含编译的命令. 命令的名字是路径的最后一部分的名字。 如果设置了 GOBIN 环境变量，则安装到该路径下。
 
 import 时通过 GOPATH 查找对应的包，但是下载的新包总是安装在第一个目录下。

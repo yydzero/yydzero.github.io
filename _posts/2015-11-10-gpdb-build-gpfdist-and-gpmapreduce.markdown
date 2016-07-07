@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB: 编译 gpfdist 和 gpmapreduce"
+title:  "GPDB: compile gpfdist and gpmapreduce"
+subtitle:  "GPDB: 编译 gpfdist 和 gpmapreduce"
 author: 姚延栋
 date:   2015-11-10 11:20:43
 categories: GPDB gpfdist gpmapreduce

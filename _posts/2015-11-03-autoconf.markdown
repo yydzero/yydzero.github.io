@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "Autoconf"
+title:  "Autoconf guide"
+subtitle:  "Autoconf使用指南"
 author: 姚延栋
 date:   2015-11-03 17:14:00
 categories: autoconf libtool

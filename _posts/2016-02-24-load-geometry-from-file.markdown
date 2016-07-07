@@ -1,9 +1,10 @@
 ---
 layout: post
-title:  "如何加载大量的geometry数据到GPDB"
+title:  "How to load bulk of Geometry data into GPDB"
+subtitle:  "如何加载大量的geometry数据到GPDB"
 author: 刘奎恩
 date:   2016-02-24 11:59:24
-categories: gpdb data load geometry
+categories: gpdb geospatial
 published: true
 ---
 

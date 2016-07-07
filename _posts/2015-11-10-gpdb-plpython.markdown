@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "GPDB 中使用 plpython 实现 python 自定义函数"
+title:  "How to implement UDFs with Pytyon innner GPDB"
+subtitle:  "GPDB 中使用 plpython 实现 python 自定义函数"
 author: 姚延栋
 date:   2015-11-10 17:20:43
 categories: GPDB python plpython

@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "在VMWare上运行CentOS时遇到SMBus错误的解决方法"
+title:  "SMBus error when running CentOS in VMWare"
+subtitle:  "在VMWare上运行CentOS时遇到SMBus错误的解决方法"
 author: 刘奎恩
 date:   2016-01-22 14:49:24
 categories: sandbox, vmware
