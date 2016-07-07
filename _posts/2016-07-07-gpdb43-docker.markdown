@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Build GPDB43 docker with rhel5 images"
+title:  "setup GPDB43 in a docker with rhel5 images"
 author: 刘奎恩/Kuien, 邱培峰/Peifeng
-date:   2016-07-07 10:31
+date:   2016-07-06 10:31
 categories: coding
 published: true
 ---
@@ -28,7 +28,8 @@ __on docker machine__
 
 Since gpdb4 is a private repo, you need private ssh key to clone it.
 Clone it first on host machine and copy it to docker.
-Sometime, we choose to edit gpdb4 source from host (with IDE) and mount
+
+Sometime, we choose to edit gpdb4 source from host (**with IDE**) and mount
 the gpdb4 source dir in docker to compile and test it.
 
 __on host machine__
@@ -43,18 +44,23 @@ __on host machine__
 __on docker machine__
 
 attach to the docker (by default it is root)
+
 1. chown -R gpadmin:gpadmin /home/gpadmin/workspace 
-4. chmod g+w /opt
-2. su gpadmin
-3. cd ~/workspace/gpdb/gpAux/
-6. source /opt/gcc\_env.sh #default GCC is 4.1.2, we always use GCC 4.4.2 to compile gpdb43
-7. make sync\_tools
-8. ln -s /opt/releng/tools/third-party/ext/2.2/rhel5_x86_64/python-2.6.2 /opt/python-2.6.2 (compiler seeks for it)
+2. chmod g+w /opt
+3. su gpadmin
+4. cd ~/workspace/gpdb/gpAux/
+5. source /opt/gcc\_env.sh #default GCC is 4.1.2, we always use GCC 4.4.2 to compile gpdb43
+6. make sync\_tools
+7. ln -s /opt/releng/tools/third-party/ext/2.2/rhel5_x86_64/python-2.6.2 /opt/python-2.6.2 (compiler seeks for it)
 8. make HOME=`pwd` devel
 
 ## setup gpdb43 in docker
 
-Make sure you login with 'gpadmin', then setup gpdb and enjoy it.
+Make sure:
+
+1. you start the _sshd_ service
+2. you login with _gpadmin_, copy your public key into authrized\_keys
+3. then setup gpdb and enjoy it.
 
 ## FAQ
 
