@@ -3,7 +3,7 @@ layout: post
 title:  "Import well prepared GPDB43 docker"
 subtitle:  "如何导入做好的GPDB43 docker"
 author: 刘奎恩/Kuien, Adam Lee
-date:   2016-07-13 14:08
+date:   2016-07-14 14:08 +0800
 categories: coding
 published: true
 ---
