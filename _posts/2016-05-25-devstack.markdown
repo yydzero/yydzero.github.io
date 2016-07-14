@@ -1,39 +1,36 @@
 ---
 layout: post
-title:  "devstack"
-subtitle: devstack
+title:  "devstack: a quick tour to openstack"
 author: 姚延栋
 date:   2016-06-03 11:49
 categories: openstack devstack
 published: true
 ---
 
-## devstack: a quick tour to openstack
-
 ### prepare python, pip and os-testr
 
-	$ wget https://bootstrap.pypa.io/get-pip.py
-	$ sudo python get-pip.py
-	$ sudo pip install -U os-testr
+    $ wget https://bootstrap.pypa.io/get-pip.py
+    $ sudo python get-pip.py
+    $ sudo pip install -U os-testr
 
 ### register RHEL repo
 
 If not register to RHEL, devstack.sh will report error when install packages.
 
-	$ sudo subscription-manager register --username <username> --password <password>
-	$ sudo subscription-manager attach --auto
+    $ sudo subscription-manager register --username <username> --password <password>
+    $ sudo subscription-manager attach --auto
 
 
 ### setup
 
-	# adduser stack	// login as root
-	# echo "stack ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-	# su - stack
+    # adduser stack	// login as root
+    # echo "stack ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    # su - stack
 
-	$ git clone https://git.openstack.org/openstack-dev/devstack
-	$ cd devstack
-	$ cat local.conf
-	[[local|localrc]]
+    $ git clone https://git.openstack.org/openstack-dev/devstack
+    $ cd devstack
+    $ cat local.conf
+    [[local|localrc]]
     ADMIN_PASSWORD=secret
     DATABASE_PASSWORD=$ADMIN_PASSWORD
     RABBIT_PASSWORD=$ADMIN_PASSWORD
@@ -42,12 +39,12 @@ If not register to RHEL, devstack.sh will report error when install packages.
     FIXED_RANGE=10.11.12.0/24
     FIXED_NETWORK_SIZE=256
     
-	$ ./stack.sh
-	....
-	....
-	....
+    $ ./stack.sh
+    ....
+    ....
+    ....
 
-	=========================
+    =========================
     DevStack Component Timing
     =========================
     Total runtime         3146
@@ -74,11 +71,11 @@ If not register to RHEL, devstack.sh will report error when install packages.
 
 ###
 
-	$ ./devstack/exercise.sh
+    $ ./devstack/exercise.sh
 
-	....
+    ....
 
-	+exercises/volumes.sh:main:211             timeout 30 sh -c 'while nova list | grep -q 0e2a39c3-7bd1-418b-b7eb-74a119c512a4; do sleep 1; done'
+    +exercises/volumes.sh:main:211             timeout 30 sh -c 'while nova list | grep -q 0e2a39c3-7bd1-418b-b7eb-74a119c512a4; do sleep 1; done'
     +exercises/volumes.sh:main:215             [[ vol_secgroup = \d\e\f\a\u\l\t ]]
     +exercises/volumes.sh:main:219             nova secgroup-delete vol_secgroup
     +----+--------------+--------------------------+
@@ -104,4 +101,4 @@ If not register to RHEL, devstack.sh will report error when install packages.
 
 ### Dashboard
 
-	http://192.168.177.139/dashboard/project/instances/
+    http://192.168.177.139/dashboard/project/instances/

@@ -15,10 +15,6 @@ __Under Mac__:
 When we compile source-codes with SSH function on Mac OS-X, I meet following warnings:
 
 ```
-± |s3master → s3 ?:2 ✗| → make test
-clang-format -style="{BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 100, AllowShortFunctionsOnASingleLine: None}" -i src/*.cpp test/*.cpp include/*.h
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3conf_test.cpp -o test/s3conf_test.o
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3utils_test.cpp -o test/s3utils_test.o
 In file included from test/s3utils_test.cpp:1:
 src/s3utils.cpp:86:5: warning: 'HMAC_CTX_init' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
     HMAC_CTX_init(&hmac);
@@ -51,168 +47,6 @@ In file included from test/s3utils_test.cpp:1:
 src/s3utils.cpp:89:5: warning: 'HMAC_Final' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
     HMAC_Final(&hmac, out_hash, &len);
     ^
-/usr/include/openssl/hmac.h:100:6: note: 'HMAC_Final' has been explicitly marked deprecated here
-void HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:91:5: warning: 'HMAC_CTX_cleanup' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_CTX_cleanup(&hmac);
-    ^
-/usr/include/openssl/hmac.h:91:6: note: 'HMAC_CTX_cleanup' has been explicitly marked deprecated here
-void HMAC_CTX_cleanup(HMAC_CTX *ctx) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:116:5: warning: 'SHA256_Init' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    SHA256_Init(&sha256);
-    ^
-/usr/include/openssl/sha.h:147:5: note: 'SHA256_Init' has been explicitly marked deprecated here
-int SHA256_Init(SHA256_CTX *c) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:117:5: warning: 'SHA256_Update' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    SHA256_Update(&sha256, string, strlen(string));
-    ^
-/usr/include/openssl/sha.h:148:5: note: 'SHA256_Update' has been explicitly marked deprecated here
-int SHA256_Update(SHA256_CTX *c, const void *data, size_t len) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:118:5: warning: 'SHA256_Final' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    SHA256_Final(out_hash, &sha256);
-    ^
-/usr/include/openssl/sha.h:149:5: note: 'SHA256_Final' has been explicitly marked deprecated here
-int SHA256_Final(unsigned char *md, SHA256_CTX *c) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:145:5: warning: 'HMAC_CTX_init' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_CTX_init(&hmac);
-    ^
-/usr/include/openssl/hmac.h:90:6: note: 'HMAC_CTX_init' has been explicitly marked deprecated here
-void HMAC_CTX_init(HMAC_CTX *ctx) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:146:45: warning: 'EVP_sha256' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_Init_ex(&hmac, secret, secret_len, EVP_sha256(), NULL);
-                                            ^
-/usr/include/openssl/evp.h:673:15: note: 'EVP_sha256' has been explicitly marked deprecated here
-const EVP_MD *EVP_sha256(void) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-              ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:146:5: warning: 'HMAC_Init_ex' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_Init_ex(&hmac, secret, secret_len, EVP_sha256(), NULL);
-    ^
-/usr/include/openssl/hmac.h:97:6: note: 'HMAC_Init_ex' has been explicitly marked deprecated here
-void HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:147:5: warning: 'HMAC_Update' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_Update(&hmac, (unsigned char *)str, strlen(str));
-    ^
-/usr/include/openssl/hmac.h:99:6: note: 'HMAC_Update' has been explicitly marked deprecated here
-void HMAC_Update(HMAC_CTX *ctx, const unsigned char *data, size_t len) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:148:5: warning: 'HMAC_Final' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_Final(&hmac, out_hash, &len);
-    ^
-/usr/include/openssl/hmac.h:100:6: note: 'HMAC_Final' has been explicitly marked deprecated here
-void HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:150:5: warning: 'HMAC_CTX_cleanup' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    HMAC_CTX_cleanup(&hmac);
-    ^
-/usr/include/openssl/hmac.h:91:6: note: 'HMAC_CTX_cleanup' has been explicitly marked deprecated here
-void HMAC_CTX_cleanup(HMAC_CTX *ctx) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:213:5: warning: 'MD5_Init' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    MD5_Init(&this->c);
-    ^
-/usr/include/openssl/md5.h:113:5: note: 'MD5_Init' has been explicitly marked deprecated here
-int MD5_Init(MD5_CTX *c) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:217:5: warning: 'MD5_Update' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    MD5_Update(&this->c, data, len);
-    ^
-/usr/include/openssl/md5.h:114:5: note: 'MD5_Update' has been explicitly marked deprecated here
-int MD5_Update(MD5_CTX *c, const void *data, size_t len) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:222:5: warning: 'MD5_Final' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    MD5_Final(this->md5, &c);
-    ^
-/usr/include/openssl/md5.h:115:5: note: 'MD5_Final' has been explicitly marked deprecated here
-int MD5_Final(unsigned char *md, MD5_CTX *c) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-In file included from test/s3utils_test.cpp:1:
-src/s3utils.cpp:230:5: warning: 'MD5_Init' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    MD5_Init(&this->c);
-    ^
-/usr/include/openssl/md5.h:113:5: note: 'MD5_Init' has been explicitly marked deprecated here
-int MD5_Init(MD5_CTX *c) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-    ^
-19 warnings generated.
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3common_test.cpp -o test/s3common_test.o
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3log_test.cpp -o test/s3log_test.o
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3url_parser_test.cpp -o test/s3url_parser_test.o
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3http_headers_test.cpp -o test/s3http_headers_test.o
-g++ -O2 -g3 -std=c++98 -Wall -fPIC -DS3_STANDALONE -fprofile-arcs -ftest-coverage -Isrc -Iinclude -Ilib -I/usr/include/libxml2 -I../gtest/ -I../gmock/ -I../gtest/src -I../gmock/src -I../gtest/include -I../gmock/include -MMD -MP -c test/s3thread_test.cpp -o test/s3thread_test.o
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:28:43: warning: 'CRYPTO_num_locks' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    mutex_buf = (pthread_mutex_t *)malloc(CRYPTO_num_locks() * sizeof(MUTEX_TYPE));
-                                          ^
-/usr/include/openssl/crypto.h:415:5: note: 'CRYPTO_num_locks' has been explicitly marked deprecated here
-int CRYPTO_num_locks(void) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER; /* return CRYPTO_NUM_LOCKS (shared libs!) */
-    ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:30:21: warning: 'CRYPTO_num_locks' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    for (i = 0; i < CRYPTO_num_locks(); i++) MUTEX_SETUP(mutex_buf[i]);
-                    ^
-/usr/include/openssl/crypto.h:415:5: note: 'CRYPTO_num_locks' has been explicitly marked deprecated here
-int CRYPTO_num_locks(void) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER; /* return CRYPTO_NUM_LOCKS (shared libs!) */
-    ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:31:5: warning: 'CRYPTO_set_id_callback' is deprecated: first deprecated in OS X 10.7
-      [-Wdeprecated-declarations]
-    CRYPTO_set_id_callback(id_function);
-    ^
-/usr/include/openssl/crypto.h:425:6: note: 'CRYPTO_set_id_callback' has been explicitly marked deprecated here
-void CRYPTO_set_id_callback(unsigned long (*func)(void)) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:32:5: warning: 'CRYPTO_set_locking_callback' is deprecated: first deprecated in OS X 10.7
-      [-Wdeprecated-declarations]
-    CRYPTO_set_locking_callback(locking_function);
-    ^
-/usr/include/openssl/crypto.h:417:6: note: 'CRYPTO_set_locking_callback' has been explicitly marked deprecated here
-void CRYPTO_set_locking_callback(void (*func)(int mode,int type,
-     ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:40:5: warning: 'CRYPTO_set_id_callback' is deprecated: first deprecated in OS X 10.7
-      [-Wdeprecated-declarations]
-    CRYPTO_set_id_callback(NULL);
-    ^
-/usr/include/openssl/crypto.h:425:6: note: 'CRYPTO_set_id_callback' has been explicitly marked deprecated here
-void CRYPTO_set_id_callback(unsigned long (*func)(void)) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER;
-     ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:41:5: warning: 'CRYPTO_set_locking_callback' is deprecated: first deprecated in OS X 10.7
-      [-Wdeprecated-declarations]
-    CRYPTO_set_locking_callback(NULL);
-    ^
-/usr/include/openssl/crypto.h:417:6: note: 'CRYPTO_set_locking_callback' has been explicitly marked deprecated here
-void CRYPTO_set_locking_callback(void (*func)(int mode,int type,
-     ^
-In file included from test/s3thread_test.cpp:1:
-src/s3thread.cpp:42:21: warning: 'CRYPTO_num_locks' is deprecated: first deprecated in OS X 10.7 [-Wdeprecated-declarations]
-    for (i = 0; i < CRYPTO_num_locks(); i++) MUTEX_CLEANUP(mutex_buf[i]);
-                    ^
-/usr/include/openssl/crypto.h:415:5: note: 'CRYPTO_num_locks' has been explicitly marked deprecated here
-int CRYPTO_num_locks(void) DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER; /* return CRYPTO_NUM_LOCKS (shared libs!) */
-    ^
-7 warnings generated.
-
 ```
 
 ## Reason
@@ -228,5 +62,4 @@ OpenSSL API is marked as "deprecated" from OS X 10.7.
 ```
 And include the ssh headers in compiling paths.
 
-
-   -- soluction is given by Adam Li <ali@pivotal.io>
+-- soluction is given by Adam Lee <ali@pivotal.io>

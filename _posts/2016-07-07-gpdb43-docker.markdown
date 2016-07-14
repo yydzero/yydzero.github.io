@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "setup GPDB43 in a docker with rhel5 images"
+title:  "Setup GPDB43 in a docker with RHEL5 images"
 author: 刘奎恩/Kuien, 邱培峰/Peifeng
 date:   2016-07-06 10:31
 categories: coding
@@ -11,18 +11,18 @@ published: true
 
 __on host machine__
 
-1. docker login (with credential from # ci/concourse/behave\_tests.yml)
-2. docker pull pivotaldata/centos511-java7-gpdb-dev-image
-3. docker create -t --name gpdb4 pivotaldata/centos511-java7-gpdb-dev-image /bin/bash
-4. docker start gpdb4
-5. docker exec -it gpdb4 /bin/bash 
+1. `docker login (with credential from # ci/concourse/behave_tests.yml)`
+2. `docker pull pivotaldata/centos511-java7-gpdb-dev-image`
+3. `docker create -t --name gpdb4 pivotaldata/centos511-java7-gpdb-dev-image /bin/bash`
+4. `docker start gpdb4`
+5. `docker exec -it gpdb4 /bin/bash`
 
 __on docker machine__
 
-6. useradd gpadmin -s /bin/bash
-7. passwd gpadmin [###]
-8. usermod -a -G root gpadmin
-9. su gpadmin && mkdir ~/workspace
+6. `useradd gpadmin -s /bin/bash`
+7. `passwd gpadmin [###]`
+8. `usermod -a -G root gpadmin`
+9. `su gpadmin && mkdir ~/workspace`
 
 ## copy gpdb43 source to docker
 
@@ -34,10 +34,10 @@ the gpdb4 source dir in docker to compile and test it.
 
 __on host machine__
 
-1. git clone git@github.com:greenplum-db/gpdb4.git ~/workspace/
-2. cd ~/workspace/gpdb4
-3. git submodule update --init --recursive gpAux/extensions/pgbouncer/source
-4. docker cp ~/workspace/gpdb4 gpdb4:/home/gpadmin/workspace/gpdb4
+1. `git clone git@github.com:greenplum-db/gpdb4.git ~/workspace/`
+2. `cd ~/workspace/gpdb4`
+3. `git submodule update --init --recursive gpAux/extensions/pgbouncer/source`
+4. `docker cp ~/workspace/gpdb4 gpdb4:/home/gpadmin/workspace/gpdb4`
 
 ## compile gpdb43 in docker
 
@@ -45,14 +45,14 @@ __on docker machine__
 
 attach to the docker (by default it is root)
 
-1. chown -R gpadmin:gpadmin /home/gpadmin/workspace 
-2. chmod g+w /opt
-3. su gpadmin
-4. cd ~/workspace/gpdb/gpAux/
-5. source /opt/gcc\_env.sh #default GCC is 4.1.2, we always use GCC 4.4.2 to compile gpdb43
-6. make sync\_tools
-7. ln -s /opt/releng/tools/third-party/ext/2.2/rhel5_x86_64/python-2.6.2 /opt/python-2.6.2 (compiler seeks for it)
-8. make HOME=`pwd` devel
+1. `chown -R gpadmin:gpadmin /home/gpadmin/workspace `
+2. `chmod g+w /opt`
+3. `su gpadmin`
+4. `cd ~/workspace/gpdb/gpAux/`
+5. `source /opt/gcc_env.sh #default GCC is 4.1.2, we always use GCC 4.4.2 to compile gpdb43`
+6. `make sync_tools`
+7. `ln -s /opt/releng/tools/third-party/ext/2.2/rhel5_x86_64/python-2.6.2 /opt/python-2.6.2 (compiler seeks for it)`
+8. `make HOME=`pwd` devel`
 
 ## setup gpdb43 in docker
 
@@ -65,5 +65,4 @@ Make sure:
 ## FAQ
 
 1. Cannot connect to the Docker daemon. Is the docker daemon running on this host?
-use sudo
-
+`sudo groupadd docker && sudo usermod -aG docker your_username` then restart service and relogin.
