@@ -64,5 +64,5 @@ Make sure:
 
 ## FAQ
 
-1. Cannot connect to the Docker daemon. Is the docker daemon running on this host?
+1. Cannot connect to the Docker daemon. Is the docker daemon running on this host?  
 `sudo groupadd docker && sudo usermod -aG docker your_username` then restart service and relogin.
