@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Setup GPDB in Docker"
-subtitle:  "如何在docker中配置GPDB数据库"
+title:  "A few tips on setup GPDB in Docker"
+subtitle:  "一些在docker中配置GPDB数据库的小技巧"
 author: 刘奎恩/Kuien, Peifeng Qiu
 date:   2016-07-26 14:48 +0800
 categories: docker 
