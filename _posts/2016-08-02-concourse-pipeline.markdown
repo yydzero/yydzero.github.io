@@ -19,35 +19,44 @@ published: true
   ```
 
 ## 3. Prepare image
+
   For example, we want to prepare ubuntu compile environment for gpdb s3.
 
-  On host
+  On __host__
+
   ```sh
   docker pull ubuntup
   docker create -it --name dev ubuntu /bin/bash
   docker start dev
   docker exec -it dev bash
   ```
-  In docker
+
+  In __docker__
+
   ```sh
   apt-get update
   apt-get install g++ libssl-dev libxml2 libcurl4-openssl-dev make
   ```
 
-  On host
+  On __host__
 
   ```sh
   docker stop dev
   docker commit dev localhost:5000/dev
   docker push localhost:5000/dev
   ```
+  
 ## 4. Setup concourse
+
 a. Download concourse binary
+
   ```sh
   docker pull concourse/concourse
   ```
+
 b. edit docker-compose.yml
-```yaml
+
+```yml
 concourse-db:
   image: postgres:9.5
   environment:
@@ -80,29 +89,30 @@ concourse-worker:
 ```
 
 c. prepare keys used by concourse
+
   ```sh
-  mkdir -p keys/web keys/worker
-  
+  mkdir -p keys/web keys/worker  
   ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
   ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
-  
   ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
-  
   cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
   cp ./keys/web/tsa_host_key.pub ./keys/worker
   ```
+  
 d. set concourse url and start
-  ```
+
+  ```sh
   export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
   
   docker-compose up
   ```
+  
   Now we can access concourse at [http://127.0.0.1:8080]
 
   If we want to access concourse from other machines, set the external url to public IP of the NIC.
 ## 5. Edit Pipeline file
 
-```yaml
+```yml
 resources:
 - name: gpdb_src
   type: git
@@ -151,19 +161,20 @@ image_resource:
   source:
     repository: 10.34.37.169:5000/dev
     insecure_registries: ["10.34.37.169:5000"]
+    
 inputs:
   - name: gpdb_src
   - name: dev-image
+  
 run:
   path: gpdb_src/ci/concourse/s3_ut.bash
 ```
 
   gpdb4/ci/concourse/s3_ut.bash
+
 ```sh
 #!/bin/bash -l
-
 set -eox pipefail
-
 pwd
 ls
 gcc -v
