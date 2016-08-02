@@ -22,7 +22,7 @@ published: true
 
   On __host__
 
-	docker pull ubuntup 
+	docker pull ubuntu
 	docker create -it --name dev ubuntu /bin/bash
 	docker start dev
 	docker exec -it dev bash
