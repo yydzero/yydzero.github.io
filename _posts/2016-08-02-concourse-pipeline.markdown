@@ -14,9 +14,7 @@ published: true
 
 ## 2. Setup local docker registry
 
-  ```sh
-  docker run -d -p 5000:5000 --name registry registry:2
-  ```
+	docker run -d -p 5000:5000 --name registry registry:2
 
 ## 3. Prepare image
 
@@ -24,35 +22,27 @@ published: true
 
   On __host__
 
-  ```sh
-  docker pull ubuntup
-  docker create -it --name dev ubuntu /bin/bash
-  docker start dev
-  docker exec -it dev bash
-  ```
+	docker pull ubuntup 
+	docker create -it --name dev ubuntu /bin/bash
+	docker start dev
+	docker exec -it dev bash
 
   In __docker__
 
-  ```sh
-  apt-get update
-  apt-get install g++ libssl-dev libxml2 libcurl4-openssl-dev make
-  ```
+	apt-get update
+	apt-get install g++ libssl-dev libxml2 libcurl4-openssl-dev make
 
   On __host__
 
-  ```sh
-  docker stop dev
-  docker commit dev localhost:5000/dev
-  docker push localhost:5000/dev
-  ```
+	docker stop dev
+	docker commit dev localhost:5000/dev
+	docker push localhost:5000/dev
   
 ## 4. Setup concourse
 
 #### a. Download concourse binary
 
-  ```sh
-  docker pull concourse/concourse
-  ```
+	docker pull concourse/concourse
 
 #### b. edit docker-compose.yml
 
@@ -90,24 +80,20 @@ concourse-worker:
 
 #### c. prepare keys used by concourse
 
-  ```
-  mkdir -p keys/web keys/worker  
+	mkdir -p keys/web keys/worker  
   
-  ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
-  ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
-  ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
+	ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
+	ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
+	ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
   
-  cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
-  cp ./keys/web/tsa_host_key.pub ./keys/worker
-  ```
+	cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
+	cp ./keys/web/tsa_host_key.pub ./keys/worker
   
 #### d. set concourse url and start
 
-  ```sh
-  export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
-  #
-  docker-compose up
-  ```
+	export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
+
+	docker-compose up
   
   Now we can access concourse at [http://127.0.0.1:8080](http://127.0.0.1:8080)
 
@@ -145,13 +131,11 @@ jobs:
 
 ## 6. Add pipeline to concourse
 
-  ```
-  fly -t ci login -c http://127.0.0.1:8080
-  username:
-  password:
+	fly -t ci login -c http://127.0.0.1:8080
+		username:
+		password:
    
-  fly -t ci set-pipeline -c pipe.yml -p s3-ut --var "key=`cat ~/.ssh/id_rsa`"
-  ```
+	fly -t ci set-pipeline -c pipe.yml -p s3-ut --var "key=`cat ~/.ssh/id_rsa`"
 
 ## 7. Add task to pipeline
 
@@ -175,12 +159,10 @@ run:
 
   gpdb4/ci/concourse/s3_ut.bash
 
-```sh
-\#!/bin/bash -l
-set -eox pipefail
-pwd
-ls
-gcc -v
-cd gpdb_src/gpAux/extensions/gps3ext
-make test
-```
+	#!/bin/bash -l
+	set -eox pipefail
+	pwd
+	ls
+	gcc -v
+	cd gpdb_src/gpAux/extensions/gps3ext
+	make test
