@@ -48,13 +48,13 @@ published: true
   
 ## 4. Setup concourse
 
-a. Download concourse binary
+#### a. Download concourse binary
 
   ```sh
   docker pull concourse/concourse
   ```
 
-b. edit docker-compose.yml
+#### b. edit docker-compose.yml
 
 ```yml
 concourse-db:
@@ -88,20 +88,20 @@ concourse-worker:
     CONCOURSE_TSA_HOST: concourse-web
 ```
 
-c. prepare keys used by concourse
+#### c. prepare keys used by concourse
 
-  ```sh
+  ```
   mkdir -p keys/web keys/worker  
-  #
+  
   ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
   ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
   ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
-  #
+  
   cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
   cp ./keys/web/tsa_host_key.pub ./keys/worker
   ```
   
-d. set concourse url and start
+#### d. set concourse url and start
 
   ```sh
   export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
@@ -145,12 +145,12 @@ jobs:
 
 ## 6. Add pipeline to concourse
 
-  ```sh
-  ./fly -t ci login -c http://127.0.0.1:8080
+  ```
+  fly -t ci login -c http://127.0.0.1:8080
   username:
   password:
-  #
-  ./fly -t ci set-pipeline -c pipe.yml -p s3-ut --var "key=`cat ~/.ssh/id_rsa`"
+   
+  fly -t ci set-pipeline -c pipe.yml -p s3-ut --var "key=`cat ~/.ssh/id_rsa`"
   ```
 
 ## 7. Add task to pipeline
