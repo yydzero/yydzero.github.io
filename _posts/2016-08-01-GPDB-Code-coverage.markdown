@@ -1,6 +1,8 @@
 ---
 layout: post
 title:  "How to generate code coverage for GPDB"
+subtitle: "怎么生成GPDB的代码覆盖率"
+author: Pengzhou Tang
 date:   2016-08-01 13:10:43
 ---
 

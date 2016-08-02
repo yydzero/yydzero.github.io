@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "Sync time with remote ntp server"
+subtitle:  "通过NTP服务器同步时间"
+author: 刘奎恩/Kuien, Peifeng Qiu
+date:   2016-08-02 16:24 +0800
+categories: docker 
+published: true
+---
+
+### Why?
+
+In following case you need to sync time:
+
+* connect to cloud service, for example, Amazon S3. If the local time differs from server time too much, the S3 service request will be rejected.
+* any time-sensitive cases you may meet 
+
+### How?
+
+    sudo ntpdate ntp.ubuntu.com
+
+_NOTE_: If you want to sync the time in a DOCKER, you need to perform previous command in HOST.
