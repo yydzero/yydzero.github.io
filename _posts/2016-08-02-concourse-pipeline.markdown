@@ -64,7 +64,7 @@ concourse-db:
     POSTGRES_USER: concourse
     POSTGRES_PASSWORD: changeme
     PGDATA: /database
-
+-
 concourse-web:
   image: concourse/concourse
   links: [concourse-db]
@@ -77,7 +77,7 @@ concourse-web:
     CONCOURSE_EXTERNAL_URL: "${CONCOURSE_EXTERNAL_URL}"
     CONCOURSE_POSTGRES_DATA_SOURCE: |
       postgres://concourse:changeme@concourse-db:5432/concourse?sslmode=disable
-
+-
 concourse-worker:
   image: concourse/concourse
   privileged: true
@@ -92,9 +92,11 @@ c. prepare keys used by concourse
 
   ```sh
   mkdir -p keys/web keys/worker  
+  #
   ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
   ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
   ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
+  #
   cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
   cp ./keys/web/tsa_host_key.pub ./keys/worker
   ```
@@ -103,13 +105,14 @@ d. set concourse url and start
 
   ```sh
   export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
-  
+  #
   docker-compose up
   ```
   
-  Now we can access concourse at [http://127.0.0.1:8080]
+  Now we can access concourse at [http://127.0.0.1:8080](http://127.0.0.1:8080)
 
   If we want to access concourse from other machines, set the external url to public IP of the NIC.
+
 ## 5. Edit Pipeline file
 
 ```yml
@@ -120,13 +123,13 @@ resources:
     branch: pipetest
     private_key: {{key}}
     uri: ssh://pqiu@10.34.37.169/Users/pqiu/work/gpdb4/.git
-
+-
 - name: dev-image
   type: docker-image
   source:
     repository: 10.34.37.169:5000/dev
     insecure_registries: ["10.34.37.169:5000"]
-
+-
 jobs:
 - name: s3-unittest
   plan:
@@ -146,7 +149,7 @@ jobs:
   ./fly -t ci login -c http://127.0.0.1:8080
   username:
   password:
-  
+  #
   ./fly -t ci set-pipeline -c pipe.yml -p s3-ut --var "key=`cat ~/.ssh/id_rsa`"
   ```
 
@@ -161,11 +164,11 @@ image_resource:
   source:
     repository: 10.34.37.169:5000/dev
     insecure_registries: ["10.34.37.169:5000"]
-    
+-    
 inputs:
   - name: gpdb_src
   - name: dev-image
-  
+-  
 run:
   path: gpdb_src/ci/concourse/s3_ut.bash
 ```
@@ -173,7 +176,7 @@ run:
   gpdb4/ci/concourse/s3_ut.bash
 
 ```sh
-#!/bin/bash -l
+\#!/bin/bash -l
 set -eox pipefail
 pwd
 ls
