@@ -54,7 +54,7 @@ concourse-db:
     POSTGRES_USER: concourse
     POSTGRES_PASSWORD: changeme
     PGDATA: /database
--
+
 concourse-web:
   image: concourse/concourse
   links: [concourse-db]
@@ -67,7 +67,7 @@ concourse-web:
     CONCOURSE_EXTERNAL_URL: "${CONCOURSE_EXTERNAL_URL}"
     CONCOURSE_POSTGRES_DATA_SOURCE: |
       postgres://concourse:changeme@concourse-db:5432/concourse?sslmode=disable
--
+
 concourse-worker:
   image: concourse/concourse
   privileged: true
@@ -109,13 +109,13 @@ resources:
     branch: pipetest
     private_key: {{key}}
     uri: ssh://pqiu@10.34.37.169/Users/pqiu/work/gpdb4/.git
--
+
 - name: dev-image
   type: docker-image
   source:
     repository: 10.34.37.169:5000/dev
     insecure_registries: ["10.34.37.169:5000"]
--
+
 jobs:
 - name: s3-unittest
   plan:
@@ -148,11 +148,11 @@ image_resource:
   source:
     repository: 10.34.37.169:5000/dev
     insecure_registries: ["10.34.37.169:5000"]
--    
+    
 inputs:
   - name: gpdb_src
   - name: dev-image
--  
+  
 run:
   path: gpdb_src/ci/concourse/s3_ut.bash
 ```
