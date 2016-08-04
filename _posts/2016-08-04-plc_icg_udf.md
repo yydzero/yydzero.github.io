@@ -1,0 +1,6 @@
+## Adding ICG test using PL/C UDF
+* First, add C funtions in regress.c, and then this file would be compiled to regress.so;
+* Second, write the test case in directory input/ with the suffix of the file .source, in this test file, define the SQL function to map to the PL/C function; note that, in this source file, we must use some "variables", such as @abs_builddir@, @abs_srcdir@, @DLSUFFIX@ etc.
+* Third, add the name of the test into one schedule, and into the .gitignore file of sql/ dir, because we would generate a corresponding sql file under that dir, and we do not want that to be committed into the repo;
+* The execution procedure is: pg_regress binary would first convert files under input with .source suffix into files in output/ dir, in which all "variables" in input files would be substituted to specific contents, and then the files in output/ dir would be converted to .sql files into sql/ dir and be executed by the schedule;
+* The "variables" in the input source files are just text strings, and are textually substituted  by code in pg_regress.c
