@@ -1,6 +1,14 @@
+---
+version:	alpha version
+date:		2016-08-04
+published:	false
+---
+
+
 # Greenplum 数据库最佳实践
 
-本文档基于[Greenplum数据库最佳实践官方文档](https://support.pivotal.io/hc/en-us/article_attachments/201243717/GPDB_Best_Practices_vA01.pdf)。译者姚延栋, 校订刘奎恩。转载请注明出处。
+本文档基于[Greenplum数据库最佳实践官方文档](http://gpdb.docs.pivotal.io/4380/pdf/GPDB43BestPracticesA03.pdf)
+译者姚延栋、刘奎恩。转载请注明出处。
 
 ## 第一章
 
@@ -1227,9 +1235,10 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 * 数据加载完成后，对堆表包括系统表运行 `VACUUM`，对所有表运行 ANALYZE。对AO表不必运行 VACUUM。如果表是分区表，则可以仅对数据加载影响的分区执行`VACUUM`和ANALYZE。这样可以清除失败的加载占用的空间、删除或者更新的行占用的空间，并更新统计数据。
 * 加载大量数据后重新检查数据倾斜。使用下面查询检查倾斜状况：
 
-		SELECT gp_Segment_id, count(*)
+	SELECT gp_Segment_id, count(\*)
 	FROM schema.table
 	GROUP BY gp_Segment_id ORDER BY 2;
+
 * 默认情况，gpfdist可以处理的最大行为 32K。如果行大于32K，则需要使用gpfdist的-m <bytes>选项增大最大行长度。如果使用gpload，配置控制文件中的 MAX_LINE_LENGTH 参数。
 
 	注意：Informatica Power Exchange 目前还不能处理大于32K的行。
@@ -1238,13 +1247,1086 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 
 关于 `gpfdist`和`gpload`的更多信息，请参考《Greenplum数据库参考指南》
 
+
 ## <span id='使用 gptransfer 迁移数据'>第七章 使用 gptransfer 迁移数据</span>
+
+迁移工具 `gptransfer` 将Greenplum数据库中的元数据和数据从一个Greenplum数据库转移到其他Greenplum数据库里，并允许你迁移整个库或者只迁移选定的数据表。源数据库和目标数据库可以在相同的集群上，也可以在不同的集群。`gptransfer` 通过`gpfdist`数据加载工具来实现数据在所有段数据库上的并行数据迁移，以获得最大的传输速率。
+
+`gptransfer`负责数据迁移任务的组织与执行。这里假定，数据迁移所涉及的目标集群和源集群都已经存在，而且两个集群上的所有主机都是网络可达的，并支持带有证书认证的SSH连接。
+
+`gptransfer`接口选项中可以指定迁移一个或多个完整数据库，亦或一个或者多个数据表。一个完整数据库的迁移涉及数据库的模式(schema)、数据表、索引、视图、角色、用户定义函数(UDF)和资源队列等。所涉及的配置文件，包含`postgres.conf`和`pg_hba.conf`，必须通过数据库管理员手动迁移。此外，那些通过`gppkg`安装的数据库扩展组件，如Madlib、PostGIS和编程语言扩展等，需要数据库管理员在目标数据库上手动安装。
+
+
+### `gptransfer` 能做什么
+
+`gptransfer` 使用可读可写的外部表、Greenplum的`gpfdist` 并行数据加载工具、以及命名管道来实现数据从源数据库到目标数据库的迁移。源集群上的段服务器从源数据库表中选择数据并插入到可写的外部表。目标集群上的段服务器从可读的外部表中选择数据并插入到目标数据库表中。其中，可读的和可写的外部表依赖于源集群上的段服务器主机上的命名管道，而且每个命名管道有一个`gpfdist`进程负责该管道输出到目标段服务器上的可读外部表。
+
+`gptransfer` 负责协调数据库对象迁移的批处理流程。对于每一个待迁移的数据表，它执行以下操作：
+
+* 在源数据库中创建一个可写的外部表；
+* 在目标数据库中创建一个可读的外部表；
+* 在源集群的段主机上创建命名管道和`gpfdist`进程；
+* 在源数据库中执行一条`select into`语句将源数据出入科协外部表；
+* 在目标数据库中执行一条`select into`语句将数据从可读外部表中插入目标表；
+* 通过比较源和目标表中的数据行的MD5哈希值来验证数据的完整性(可选操作)；
+* 清理外部表、命名管道和`gpfdist`进程。
+
+### 预备知识
+
+* `gptransfer` 工具只能在（包括EMC DCA一体机在内的）Greenplum数据库上使用，暂不支持将Pivotal HAWQ作为迁移的数据源或者目标。
+* Greenplum集群的源和目标集群的版本都必须是4.2及以上。
+* 至少一个Greenplum实例具有`gptransfer`工具，该工具可以在GPDB 4.2.8.1及以上版本和4.3.2.0及以上版本中找到。如果迁移的数据源和目标集群都没有`gptransfer`， 你必须升级至少一个集群来使用`gptransfer`。
+* `gptransfer`工具可以从迁移的数据源或目标集群上启动。
+* 目标集群中段服务器的数目必须大于或等于源集群中主机数。其中，目标集群中的段服务器数目可以小于源主机中的段服务器数目，但是数据迁移效率会比较低。
+* 无论源集群还是目标集群中的段主机都必须能够通过网络彼此互联互通
+* 无论源集群还是目标集群中的每台主机都必须能够通过带证书认证的SSH协议连接彼此。你可以通过`gpssh_exkeys`来在两个集群之间交换公钥。
+
+### 快速和慢速模式
+
+`gptransfer` 通过`gpfdist`并行文件服务工具实现数据迁移，后者为目标段数据库提供对等服务。
+运行更过的`gpfdist`进程可以增加并行度和数据迁移速率。当目标集群有相同的或者比源集群更多的段服务器数，
+`gptransfer` 将为每一个源段服务器启动一个命名管道和`gpfdist`进程。这是为数据迁移速率的优化配置，又称为_快速模式_。
+
+如果目标集群上的段服务器数目少于源集群，命名管道输入端的配置会不一样。 `gptransfer`会自动选择替换配置。配置中的差别意味着，
+如果目标集群中的段服务器数目少于源数据库中段的数目，其数据迁移速率不会像比源集群具有更多段服务器的目标集群中迁移那么快。
+这种称之为_慢速模式_，因为负责往目标集群提供数据的`gpfdist`进程的数量要少一些。尽管如此，每个段数据库启动一个`gpfdist`
+进行数据迁移的速度仍然很快。
+
+当目标集群比源集群小的时候，每个段主机启动一个命名管道，该主机上的所有段服务器通过该命名管道发送数据。源主机上的所有段服务器
+将它们的数据写入一个可写Web外部表，该外部表连接在`gpfdist`进程的命名管道的输入端，藉此将表数据整合到单个命名管道上。另有一个
+`gpfdist`进程在命名管道的输出端将整合数据写入目标集群。
+
+在目标端，`gptransfer`定义了一个可读外部表，在源主机对应启动一个`gpfdist`服务的作为该外部表的输入，并通过SELECT语句从
+该可读外部表将数据注入目标表。数据在目标集群的所有段服务器上均匀分布。
+
+### 批大小和子批大小
+
+`gptransfer`执行的并行度由两个命令行参数决定：`--batch-size`和`--sub-batch-size`。`--batch-size`参数指定要
+每个批次中迁移的表数目，缺省值为2，意味着任何时候可以同时处理两个表的迁移。批大小的最小值为1、最大值为10。`--sub-batch-size`参数
+指定要完成单个表迁移任务的最大并行子进程数，其缺省值是25、最大值是50。二者的乘积就是数据迁移的并行度。如果设置为缺省值，`gptransfer`
+可以处理50个并行任务。每个线程都是一个Python进程会消耗着内存，所以将这两个参数值设置太高会导致Python的Out of Memory错误。出于这个考虑，
+批大小需要适配你的环境资源。
+
+### 准备gptransfer的主机
+
+当你安装一个Greenplum数据集群的时候，你需要配置所有的主服务器和段服务器主机，使得Greenplum数据管理人员(`gpadmin`)可以在该集群的任一主机上
+通过SSH连接集群中任何其他主机而无需输入密码。`gptransfer`工具要求源集群和目标集群之间的任一主机之间达到该功能。首先，确保集群之间有网络可以
+连通彼此；然后，准备一个包含两个集群上所有主机的列表文件，通过`gpssh-exkeys`工具来交换公钥。请参照Greenplum Database Utility Guide中
+`gpssh-exkeys`部分内容。
+
+主机映射文件是一个列举源集群上所有段服务器的文本文件，用来辅助Greenplum集群中主机之间的通讯。`gptransfer`通过命令行选项
+`--source-map-file=host_map_file`加载该文件，它是在两个分离的Greenplum集群之间复制数据的必选项。
+
+该文件包含一个如下格式所示的列表：
+
+    host1_name,host1_ip_addr
+    host2_name,host2_ipaddr
+    ...
+
+该文件使用IP地址而非主机名以避免集群之间的名字解析中可能遇到的问题。
+
+### 限制条件
+
+`gptransfer`只迁移用户数据库，其他诸如`postgres`、`template0`和`template1`等数据库不会被迁移。管理员需要手动迁移配置文件
+并在目标数据库中使用`gppkg`安装扩展组件。
+
+目标集群至少要有源集群中段主机一样数目的段服务器。向小集群迁移数据不会像往大集群迁移那么快速。迁移小的或者空的数据表可能会出乎意料的慢，
+因为无论是否有实际数据需要迁移，在设置外部表和段服务器之间并行数据加载的通讯进程等都需要不小的固定开销。
+
+### 完整模式和表模式
+
+当`gptransfer`运行时带有`--full`选项，将会把源数据库中所有的表、视图、索引、角色、用户定义函数、资源队列等都拷贝到目标数据库。
+要迁移的数据库不能已经存在于目标集群上，否则`gptransfer`将失败并报出如下错误：
+
+    ￼[ERROR]:- gptransfer: error: --full option specified but tables exist on destination system
+
+如果要复制个别数据表，可以通过命令行选项`-t`来指定（每个选项指定一个表），或者通过命令行选项`-f`来指定包含待迁移表的列表文件。在该文件中通过完整的
+`database.schema.table`格式来记录数据表，`database`对应数据库必须已经存在在目标集群中。表定义、索引和表中内容将被复制。
+
+缺省，如果你试图千亿目标数据库中已经存在的表，`gptransfer`将报如下错误：
+
+	[INFO]:-Validating transfer table set...
+	[CRITICAL]:- gptransfer failed. (Reason='Table database.schema.table exists in database database .') exiting...
+
+可以通过`--skip-existing`、`--truncate`或者`--drop`选项来解决。
+
+下面的表格中给出了完整模式和表模式下要拷贝的目标列表。
+
+Object            | Full Mode | Table Mode
+------------------|-----------|-----------
+Data              | Yes       | Yes
+Indexes           | Yes       | Yes
+Roles             | Yes       | No
+Functions         | Yes       | No
+Resource Queues   | Yes       | No
+`postgres.conf`   | No        | No
+`pg_hba.conf`     | No        | No
+`gppkg`           | No        | No
+
+如果你想逐步拷贝一个数据库，比如，在预定关机或低活跃时间区间，可以通过`--full`和`--schema-only`联合选项。
+运行`gptransfer --full -- schema-only -d <database_name> ... ` 在目标集群上创建一个完整数据库，但是没有数据。
+然后你可以在预定关机或低活跃时间区间内分阶段迁移数据。如果你想稍后迁移数据表，为避免因为目标集群上表已经存在到而导致迁移失败，
+可以包含`--truncate`或`--drop`选项。
+
+### 锁定
+
+`-x`选项可以锁定表，将会放置一个排它锁到源表上直到复制和验证（如果需要）任务完成。
+
+### 验证
+
+缺省，`gptransfer`不会验证迁移的数据。你可以添加`--validate=[type]`选项来要求验证。验证类型`type`可以是下面中的一个：
+
+* `count` -- 比较目标和源数据库中表内的行数。
+* `md5` -- 对目标和源数据库中的表进行排序，然后逐行对比排序后诸行的MD5哈希值。
+
+如果数据库在迁移过程中是可访问的，需要添加`-x`来锁定该表。否则，在迁移期间表可能被修改，导致验证失败。
+
+### 迁移失败
+
+一个表的失败不会终止`gptransfer`任务。当一个迁移失败，`gptransfer`会显示一个错误信息并把表明加到失败列表文件。
+在`gptransfer`的收尾任务中，`gptransfer`会打印出错信息并提供迁移失败的列表文件名，比如：
+
+    [WARNING]:-Some tables failed to transfer. A list of these tables
+    [WARNING]:-has been written to the file failed_transfer_tables_20140808_101813.txt
+    [WARNING]:-This file can be used with the -f option to continue
+
+迁移失败的列表文件格式中带有`-f`选项，所以你可以重新启动一个`gptransfer`任务来重试失败的迁移。
+
+### 最佳实践
+
+`gptransfer` 会创建一个可以高速迁移海量数据的配置文件。但是，对于小的或者空的表格，`gptransfer`的启动和清理都是非常耗时耗力的。最佳实践是主要对大数据表使用`gptransfer`，对小数据表采用其他的方法迁移。
+
+1. 在你开始迁移数据之前，将Schema从源集群复制到目标集群。不要使用`gptransfer`的`--full –schema-only`选项。这里是一些用于复制Schema的选项：
+    * 使用`gpsd`（Greenplum Statistics Dump）辅助工具。该方法包含统计信息，所以在目标集群上创建Schema周要运行`ANALYZE`操作。
+	* 使用PostgreSQL的`pg_dump`或`pg_dumpall`工具并带上`–schema-only`选项。
+	* DDL脚本，或者任何其他可以在目标数据库上重新创建Schema的方法。
+2. 使用你自己的标准将非空的数据表划分为大的和小的组，例如，你可以把超过1百万行的表或者元数据体积大于1GB的表视为大表。
+3. 使用SQL的`COPY`命令来迁移小的表。这节省了使用`gptransfer`工具每次处理小数据表时的启动和终止时时间消耗。
+    * 可选项，可以写一个或者利用现有的Shell脚本来循环调用`COPY`命令复制一组数据表
+4. 通过`gptransfer`来并行迁移大数据表。
+    * 最好是向相同大小或者更大的集群迁移数据，这样`gptransfer`可以运行在快速模式。
+	* 如果存在索引，在开始迁移之前先删掉索引。
+	* 使用`gptransfer`的表（`-t`）或文件（`-f`）选项来执行表的并行迁移。不要使用完整模式运行 `gptransfer`；Schema和小表已经事先迁移了。
+	* 在迁移之前可以先执行`gptransfer`的试运行，这可以保障表迁移的成功性。你可以通过`--batch-size`和`--sub-batch-size`选项来做实验得到最大并行度，以确定每次运行`gptransfer`时表的合理批处理大小。
+	* 加上`--skip-existing`选项，如果Schema已经存在在目标集群上。
+	* 使用完整的表名，注意表名中的逗点、空格、单引号和双引号可能会导致错误。
+	* 如果你决定使用`--validation`来验证其迁移后数据的正确性，记得加上`-x`选项来在源表上加上排它锁。
+5. 当所有数据表都迁移以后，执行以下任务
+    * 检查任何迁移失败的问题；
+	* 重新创建迁移之前删掉的索引；
+	* 确认角色、函数和资源队列度已经在目标集群上创建了，如果你是用`gptransfer -t`选项，这些对象不会迁移。
+	* 将`postgres.conf`和`pg_hba.conf`配置文件从源集群拷贝到目标集群。
+	* 通过`gppkg`来为目标数据库所安装所需扩展组件。
 
 ## <span id='安全'>第八章 安全</span>
 
+本章给出基本安全最佳实践，Pivotal建议你需要遵守这些安全实践来保障系统安全。
+
+### 安全最佳实践
+
+* 保证`gpadmin`系统用户的安全。Greenplum要求使用一个UNIX用户ID来安装和初始化GPDB,在Greenplum文档中该系统用户约定为`gpadmin`。`gpadmin`用户既是Greenplum数据库中缺省的超级用户，也是Greenplum数据库安装副本和所属数据文件的文件系统所有者(Owner)。缺省的管理员账号是Greenplum数据库设计的基础，没有它系统无法运行，也没有办法去限制`gpadmin`用户ID的访问。`gpadmin`用户可以旁过Greenplum所有的安全特性。任何人用该用户ID登陆Greenplum数据库都可以读取、修改、或者删除任何数据，包括系统元数据和数据库访问权限。所以，保护好`gpadmin`用户ID是至关重要的，只能允许核心系统管理员去访问它。管理员只有在执行特定的系统维护任务（比如升级或者扩展）的时候才能使用`gpadmin`用户登陆。数据库用户绝对不能以`gpadmin`用户登陆，包括ETL或业务任务都不能以`gpadmin`用户运行。
+* 为每一个登陆的用户分配一个不同的角色。为了记录和审计需要，每个允许登录Greenplum数据库的用户都应指定他们的数据库角色。对于应用或Web服务，可以考虑为每一个应用或者服务创建一个不同的角色。详情可参见《Greenplum数据管理指南》中的“创建新角色(用户)”章节。
+* 使用用户组来管理访问权限。详情可参见《Greenplum数据管理指南》中的“创建用户组(角色的成员关系)”章节。
+* 限制具有`SUPERUSER`（超级用户）角色属性的用户。超级用户角色可以旁过Greenplum数据库中的所有访问权限检查和资源队列限制。只有系统管理员可以赋予超级用户角色。详情可参见《Greenplum数据管理指南》中的“变更角色属性”章节。
+
+### 密码强度指南
+
+为了保护网络避免入侵，系统管理员需要验证所使用的密码是否强壮。下面的建议可以用来提高密码强度：
+
+* 最小密码长度建议： 至少9位字符。MD5密码需要15个字符或则更长。
+* 包含大写和小写。
+* 包含字母和数字。
+* 包含非字母数字的字符。
+* 选择一个可以记住的密码。
+
+下面给出一些可以用来检测密码强度的密码破解软件：
+
+* John The Ripper：一个快速的、弹性的密码破解程序。它支持使用多个单词表进行暴力密码破解。在线地址：http://www.openwall.com/john/。
+* Crack：可能是最著名的密码破解软件，破解速度很快，但是不如John The Ripper易用。在线地址：http://www.crypticide.com/alecm/security/crack/c50-faq.html。
+
+整个系统的安全建立在根密码的强度上。该密码至少要12个字符并且包含大小写、特殊字符和数字，不能基于字典单词。
+
+需要配置密码过期参数。
+
+确认在文件`/etc/libuser.conf`的`[import]`段中存在以下行：
+
+    login_defs = /etc/login.defs
+
+确认在其`[userdefaults]`段没有下面这些文字，因为它们会覆盖文件`/etc/login.defs`中的配置：
+
+* `LU_SHADOWMAX`
+* `LU_SHADOWMIN`
+* `LU_SHADOWWARNING`
+
+确认以下命令没有任何输出，运行该命令所列出的账号都要被禁掉：
+
+    grep "^+:" /etc/passwd /etc/shadow /etc/group
+
+注意：我们强烈建议客户完成初始配置后立即修改密码。
+
+    cd /etc
+    chown root:root passwd shadow group gshadow
+    chmod 644 passwd group
+    chmod 400 shadow gshadow
+
+找出所有全域可写的、又没有粘结位(Sticky)的文件：
+
+    find / -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
+
+为上述命令输出的所有目录设置粘结位 (`# chmod +t {dir}`)。
+
+    find / -xdev -type f -perm -0002 -print
+
+为上述命令生成的文件设置正确权限（`# chmod o-w {file}`）。
+
+找出所有不属于一个有效用户或者用户组的文件，给它分配一个拥有者(Owner)或者删除它，可酌情而定。
+
+    find / -xdev \( -nouser -o -nogroup \) -print
+
+找出所有全域可写的目录，确保他们属于root用户或者系统账号（假设只有系统账号具有小于500的用户ID）。如果该命令产生了任何输出，验证它们的关联是正确的或者重新关联到root账户。
+
+    find / -xdev -type d -perm -0002 -uid +500 -print
+
+认证设置，比如密码质量、密码失效策略、密码重用、密码重试企图等等，可以通过可插拔认证模块(PAM)框架来配置。PAM从目录`/etc/pam.d`中查找特定于应用程序的配置信息。运行`authconfig`或`system-config-authentication`会复写PAM配置文件，删除所有手工的修改并替换系统缺省值。
+
+PAM的缺省模块`pam_cracklib`提供了密码强度检查功能。正如美国国防部指南中推荐的，要把`pam_cracklib`配置成要求至少包含一个大写字符、一个小写字符、一个数字和一个特殊符号，可以编辑`/etc/pam.d/system-auth`文件，在`password requisite pam_cracklib.so try_first_pass`对应的行加入下面这些参数。
+
+	retry=3:
+	dcredit=-1. Require at least one digit
+	ucredit=-1. Require at least one upper case character
+	ocredit=-1. Require at least one special character
+	lcredit=-1. Require at least one lower case character
+	minlen-14. Require a minimum password length of 14.
+
+例如：
+
+	￼password required pam_cracklib.so try_first_pass retry=3\minlen=14 dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1
+
+这些参数可以根据你的安全策略需求设置。注意：这些密码限制对root密码不适用。
+
+PAM的`pam_tally2`模块提供了在多次登陆失败重试后锁定用户账号的功能。为了强制实施密码锁定，可以编辑文件`/etc/pam.d/system-auth`并加入以下行：
+
+* 在认证行第一行需要包括：
+
+	auth required pam_tally2.so deny=5 onerr=fail unlock_time=900
+
+* 在账号行第一行需要包括：
+
+	account required pam_tally2.so
+
+在该例子中，`deny`参数设置重试次数为5，`unlock_time`设置为账号被锁定900s再解锁。这些参数可以根据你的安全策略需求设置为恰当设置。一个被锁定的账号可以使用`pam_tally2`工具手动解锁：
+
+	/sbin/pam_tally2 --user {username} -reset
+
+你可以使用PAM来限制当前密码的重用。`pam_unix`模块的记忆选项可以设置为记住当前密码并防止他们被重用。为实现这个，可以编辑`/etc/pam.d/system-auth`文件中对应的行来包含记忆选项。
+
+例如：
+
+	￼password sufficient pam_unix.so [ ... existing_options ...]
+	remember=5
+
+你可以根据你的安全策略需求来设置多少个先前的密码可以被记录。
+
+	cd /etc
+	chown root:root passwd shadow group gshadow
+	chmod 644 passwd group
+	chmod 400 shadow gshadow
+
 ## <span id='加密数据和数据库连接'>第九章 加密数据和数据库连接</span>
 
-## 第十章 访问 kerberized 的 Hadoop 集群
+加密可以在以下方式来保护Greenplum数据库系统中的数据：
+
+* 客户端和主服务器之间的通讯可以用SSL加密。可以通过设置`ssl`服务器配置参数为`on`并编辑`pg_hba.conf`文件来启动。如何在Greenplum数据库中启动SSL，详情可参见《Greenplum数据管理指南》中的“加密客户端/服务器连接”章节。
+* Greenplum数据库4.2.1及更高版本支持在Greenplum并行文件分发服务器（`gpfdist`）和段服务器之间的数据交换中进行SSL加密。详情参见：["加密gpfdist连接"](#加密gpfdist连接)章节
+* Greenplum数据库集群主机之间的网络连接可以使用IPsec加密。在集群中的每对主机之间都启动一个认证的、加密的VPN网络。详情可参见《Greenplum数据管理指南》中的“为Greenplum数据库配置IPsec”章节。
+* 其余情况可以采用`pgcrypto`包的加密/解密函数来保护数据。列级的加密可以保护敏感信息，比如密码、社保号、或信用卡号。用例可参见：["使用PGP加密表中数据"](#使用PGP加密表中数据)章节。
+
+### 最佳实践
+
+* 加密可以保障数据只能被拥有有效秘钥的用户访问。
+* 加密和机密数据会引入性能开销；只有被密文数据才需要编码。
+* 在产品系统中实现任何加密方案之前需要进行性能测试。
+* Greenplum数据库产品中服务器证书需要被证书中心(CA)签名，然后客户才能认证服务器。如果所有客户都属于本地组织，那么CA也可以是本地的。
+* 当用户向Greenplum数据库发起的连接会经过一个不安全的链路时，都需要采用SSL加密。
+* 对称加密方案，即加密和解密使用相同的秘钥，比非对称方案具有更好的性能，可以在确保秘钥能够被安全分享时使用。
+* 使用`pgcrypto`包中的函数来加密硬盘上的数据。数据在数据库进程中被加密和解密，所以确保客户连接使用SSL来避免传输非加密数据是非常重要的。
+* 采用`gpfdists`协议来保障从数据库中装载或者卸载ETL数据时的安全，详情参见：["加密gpfdist连接"](#加密gpfdist连接)章节。
+
+### 秘钥管理
+
+当你正在使用对称（单一私钥）或者非对称（公私钥）密码时，一定要保障主键和私钥存储的安全性。当前有很多保存加密秘钥的可选方法，比如，放在文件系统中、秘钥保存库、加密U盘、可信计算平台模块（TPM）、或者硬件安全模块（HSM）。
+
+当筹备秘钥管理时需考虑一下问题：
+* 秘钥存在哪儿？
+* 秘钥什么时候过期？
+* 怎么保护秘钥？
+* 怎么存取秘钥？
+* 怎么回收或者撤销秘钥？
+
+开放式Web应用程序安全项目（OWASP）提供了非常全面的保障[秘钥安全指南](#秘钥安全指南)。
+
+### 其他情况使用pgcrypto加密数据
+
+Greenplum数据库的`pgcrypto`包提供了其他情况下数据加密功能。管理员可以加密带有敏感信息的数据列，比如密码、社保号、或信用卡号，提供额外保护。数据库中加密存储的数据不会被没有秘钥的用户读取，也不能从磁盘上直接读取。
+
+pgcrypto支持对称和非对称的PGP加密。对称加密中加密和解密使用相同的秘钥，它比非对称加密更快。在秘钥交换不是个问题的环境中，推荐使用对称加密方法。在非对称加密中，用一个公钥被加密数据，用另一个私钥来解密数据。它比对称加密要慢而且它需要一个更健壮的秘钥。
+
+使用pgcrypto会面临性能开销和可维护性问题。建议只有必要的时候才使用数据加密。而且，务必注意：你将无法通过数据索引来查询加密数据。
+
+在你实施数据库内加密之际，先考虑以下PGP的限制：
+* 不支持签名。这也意味着没法检查加密子键是否属于主键。
+* 不支持加密秘钥作为主键。一般不建议采用该实践，所以该限制也不是个问题。
+* 不支持多个子键。这看起来像个问题，因为这是个常见实践。换句话说，你不应该在`pgcrypto`中使用你常用的GPG/PGP，而是创建新的，因为使用场景非常不一样。
+
+缺省Greenplum数据库编译的时候带有zlib库，它支持PGP加密功能在加密之前先压缩数据。如果编译时候带有OpenSSL，则可以使用更多算法。
+
+因为pgcrypto函数运行在数据库服务器内，数据和密码在pgcrypto和客户端应用之间是明文传递的。为了最大化安全，你需要用本地连接或者SSL连接并充分信任系统和数据库管理员。
+
+Greenplum数据库中缺省没有安装pgcrypto包。你需要从[Pivotal Network](https://network.pivotal.io/)下载pgcrypto包并使用Greenplum包管理器(`gppkg`)在集群上安装`pgcrypto`包。
+
+pgcrypto会根据找到的PostgreSQL主配置脚本来配置自己。
+
+如果被编译时候带有`zlib`，pgcrypto加密功能可以在加密之前压缩数据。
+
+你可以让pgcrypto支持联邦信息处理标准(FIPS) 140-2加密认证方法。FIPF 140-2要求pgcrypto v1.2版。Greenplum数据库`pgcrypto.fips`服务器配置参数控制着在pgcrypto中支持FIPS 140-2。详情可参见《Greenplum参照指南》中的“服务器配置参数”章节。
+
+pgcrypto拥有从基本到高级内置函数等多个加密级别。下表给出了所支持的加密算法。
+
+Table 1：pgcrypto所支持的加密函数
+
+Value Functionality 	| Built-in  | With OpenSSL  | OpenSSL with FIPS 140-2
+------------------------|-----------|---------------|--------------------------
+MD5						| yes		| yes			| no
+------------------------|-----------|---------------|--------------------------
+SHA1					| yes		| yes			| no
+------------------------|-----------|---------------|--------------------------
+SHA224/256/384/512		| yes		| yes[^1]		| yes
+------------------------|-----------|---------------|--------------------------
+Other digest algorithms	| no		| yes[^2]		| no
+------------------------|-----------|---------------|--------------------------
+Blowfish				| yes		| yes			| no
+------------------------|-----------|---------------|--------------------------
+AES						| yes		| yes[^3]		| yes
+------------------------|-----------|---------------|--------------------------
+DES/3DES/CAST5			| no		| yes			| yes[^4]
+------------------------|-----------|---------------|--------------------------
+Raw Encryption			| yes		| yes			| yes
+------------------------|-----------|---------------|--------------------------
+PGP Symmetric-Key		| yes		| yes			| yes
+------------------------|-----------|---------------|--------------------------
+PGP Public Key			| yes		| yes			| yes
+
+[^1]: OpenSSL在v0.9.8版加入了SHA2算法。对于老版本，pgcrypto使用内置代码。
+[^2]: OpenSSL所支持的摘要算法会被自动获得，但是不包括ciphers，这个需要显式支持。
+[^3]: OpenSSL从v0.9.7版开始支持包含AES算法。对于老版本，pgcrypto使用内置代码。
+[^4]: 3DES已经支持，DES和CAST5尚未支持。
+
+### 创建PGP秘钥
+
+要在Greenplum数据库中使用PGP非对称加密，你必须首先创建公钥和私钥并安装它们。
+
+本节假设你已经在一台Linux机器上安装了Greenplum数据库和GNU Privacy Guard(`gpg`)命令行工具。Pivotal建议使用最新版的GPG来创建秘钥。可从[https://www.gnupg.org/ download/](https://www.gnupg.org/ download/)下载并安装GPG。在GnuPG的官方网站你可以找到适用于主流Linux发布版、Windows以及Mac OS X的安装程序。
+
+1. 以root身份运行以下命令并从菜单中选择选项 __1__：
+
+	```sh
+	# gpg --gen-key
+	gpg (GnuPG) 2.0.14; Copyright (C) 2009 Free Software Foundation, Inc.
+	This is free software: you are free to change and redistribute it.
+	There is NO WARRANTY, to the extent permitted by law.
+	gpg: directory `/root/.gnupg' created
+	gpg: new configuration file `/root/.gnupg/gpg.conf' created
+	gpg: WARNING: options in `/root/.gnupg/gpg.conf' are not yet active during this
+	run
+	gpg: keyring `/root/.gnupg/secring.gpg' created
+	gpg: keyring `/root/.gnupg/pubring.gpg' created
+	Please select what kind of key you want:
+	(1) RSA and RSA (default)
+	(2) DSA and Elgamal
+	(3) DSA (sign only)
+	(4) RSA (sign only)
+	Your selection? 【1】
+	```
+
+2. 根据各项提示回答并遵守指令操作，如例子所示：
+
+	```
+	RSA keys may be between 1024 and 4096 bits long.
+	What keysize do you want? (2048) Press enter to accept default key size
+	Requested keysize is 2048 bits
+	Please specify how long the key should be valid.
+	 0 = key does not expire
+	 <n> = key expires in n days
+	 <n>w = key expires in n weeks
+	 <n>m = key expires in n months
+	 <n>y = key expires in n years
+	 Key is valid for? (0) 【365】
+	Key expires at Wed 13 Jan 2016 10:35:39 AM PST
+	Is this correct? (y/N) 【y】
+
+	GnuPG needs to construct a user ID to identify your key.
+
+	Real name: 【John Doe】
+	Email address: 【jdoe@email.com】
+	Comment:
+	You selected this USER-ID:
+	 "John Doe <jdoe@email.com>"
+
+	Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit? 【O】
+	You need a Passphrase to protect your secret key.
+	(For this demo the passphrase is blank.)
+	can't connect to `/root/.gnupg/S.gpg-agent': No such file or directory
+	You don't want a passphrase - this is probably a *bad* idea!
+	I will do it anyway.  You can change your passphrase at any time,
+	using this program with the option "--edit-key".
+
+	We need to generate a lot of random bytes. It is a good idea to perform
+	some other action (type on the keyboard, move the mouse, utilize the
+	disks) during the prime generation; this gives the random number
+	generator a better chance to gain enough entropy.
+	We need to generate a lot of random bytes. It is a good idea to perform
+	some other action (type on the keyboard, move the mouse, utilize the
+	disks) during the prime generation; this gives the random number
+	generator a better chance to gain enough entropy.
+	gpg: /root/.gnupg/trustdb.gpg: trustdb created
+	gpg: key 2027CC30 marked as ultimately trusted
+	public and secret key created and signed.
+
+	gpg:  checking the trustdbgpg:
+	      3 marginal(s) needed, 1 complete(s) needed, PGP trust model
+	gpg:  depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u
+	gpg:  next trustdb check due at 2016-01-13
+	pub   2048R/2027CC30 2015-01-13 [expires: 2016-01-13]
+	      Key fingerprint = 7EDA 6AD0 F5E0 400F 4D45   3259 077D 725E 2027 CC30
+	uid                   John Doe <jdoe@email.com>
+	sub   2048R/4FD2EFBB 2015-01-13 [expires: 2016-01-13]
+	```
+
+3. 输入以下命令来列出PGP的秘钥：
+
+	```sh
+	# gpg --list-secret-keys
+	/root/.gnupg/secring.gpg
+	------------------------
+	sec   2048R/2027CC30 2015-01-13 [expires: 2016-01-13]
+	uid                  John Doe <jdoe@email.com>
+	ssb   2048R/4FD2EFBB 2015-01-13
+	```
+	2027CC30 是公钥，会被用来加密数据库中的数据。4FD2EFBB 是私钥，用来解密数据。
+
+4. 使用以下命令导出秘钥：
+
+	```sh
+	# gpg -a --export 4FD2EFBB > public.key
+	# gpg -a --export-secret-keys 2027CC30 > secret.key
+	```
+关于PGP加密函数的更多详情，可参照[pgcrypto的文档](http://www.postgresql.org/docs/8.3/static/pgcrypto.html)。
+
+### <span id='使用PGP加密表中数据'>使用PGP加密表中数据</span>
+
+本节展示如何使用你生成的PGP秘钥加密已经插入列中的数据。
+
+1. 复制`public.key`文件中的内容并拷贝到剪切板：
+
+	```sh
+	# cat public.key
+	-----BEGIN PGP PUBLIC KEY BLOCK-----
+	Version: GnuPG v2.0.14 (GNU/Linux)
+
+	mQENBFS1Zf0BCADNw8Qvk1V1C36Kfcwd3Kpm/dijPfRyyEwB6PqKyA05jtWiXZTh
+	2His1ojSP6LI0cSkIqMU9LAlncecZhRIhBhuVgKlGSgd9texg2nnSL9Admqik/yX
+	R5syVKG+qcdWuvyZg9oOOmeyjhc3n+kkbRTEMuM3flbMs8shOwzMvstCUVmuHU/V
+	vG5rJAe8PuYDSJCJ74I6w7SOH3RiRIc7IfL6xYddV42l3ctd44bl8/i71hq2UyN2
+	/Hbsjii2ymg7ttw3jsWAx2gP9nssDgoy8QDy/o9nNqC8EGlig96ZFnFnE6Pwbhn+
+	ic8MD0lK5/GAlR6Hc0ZIHf8KEcavruQlikjnABEBAAG0HHRlc3Qga2V5IDx0ZXN0
+	a2V5QGVtYWlsLmNvbT6JAT4EEwECACgFAlS1Zf0CGwMFCQHhM4AGCwkIBwMCBhUI
+	AgkKCwQWAgMBAh4BAheAAAoJEAd9cl4gJ8wwbfwH/3VyVsPkQl1owRJNxvXGt1bY
+	7BfrvU52yk+PPZYoes9UpdL3CMRk8gAM9bx5Sk08q2UXSZLC6fFOpEW4uWgmGYf8
+	JRoC3ooezTkmCBW8I1bU0qGetzVxopdXLuPGCE7hVWQe9HcSntiTLxGov1mJAwO7
+	TAoccXLbyuZh9Rf5vLoQdKzcCyOHh5IqXaQOT100TeFeEpb9TIiwcntg3WCSU5P0
+	DGoUAOanjDZ3KE8Qp7V74fhG1EZVzHb8FajR62CXSHFKqpBgiNxnTOk45NbXADn4
+	eTUXPSnwPi46qoAp9UQogsfGyB1XDOTB2UOqhutAMECaM7VtpePv79i0Z/NfnBe5
+	AQ0EVLVl/QEIANabFdQ+8QMCADOipM1bF/JrQt3zUoc4BTqICaxdyzAfz0tUSf/7
+	Zro2us99GlARqLWd8EqJcl/xmfcJiZyUam6ZAzzFXCgnH5Y1sdtMTJZdLp5WeOjw
+	gCWG/ZLu4wzxOFFzDkiPv9RDw6e5MNLtJrSp4hS5o2apKdbO4Ex83O4mJYnav/rE
+	iDDCWU4T0lhv3hSKCpke6LcwsX+7liozp+aNmP0Ypwfi4hR3UUMP70+V1beFqW2J
+	bVLz3lLLouHRgpCzla+PzzbEKs16jq77vG9kqZTCIzXoWaLljuitRlfJkO3vQ9hO
+	v/8yAnkcAmowZrIBlyFg2KBzhunYmN2YvkUAEQEAAYkBJQQYAQIADwUCVLVl/QIb
+	DAUJAeEzgAAKCRAHfXJeICfMMOHYCACFhInZA9uAM3TC44l+MrgMUJ3rW9izrO48
+	WrdTsxR8WkSNbIxJoWnYxYuLyPb/shc9k65huw2SSDkj//0fRrI61FPHQNPSvz62
+	WH+N2lasoUaoJjb2kQGhLOnFbJuevkyBylRz+hI/+8rJKcZOjQkmmK8Hkk8qb5x/
+	HMUc55H0g2qQAY0BpnJHgOOQ45Q6pk3G2/7Dbek5WJ6K1wUrFy51sNlGWE8pvgEx
+	/UUZB+dYqCwtvX0nnBu1KNCmk2AkEcFK3YoliCxomdOxhFOv9AKjjojDyC65KJci
+	Pv2MikPS2fKOAg1R3LpMa8zDEtl4w3vckPQNrQNnYuUtfj6ZoCxv
+	=XZ8J
+	-----END PGP PUBLIC KEY BLOCK-----
+	```
+2. 创建一个叫`userssn`的表并插入一些敏感数据，本例子中为Bob和Alice的社保号。将public.key中内容复制到“dearmor(”之后。
+
+	```sql
+	CREATE TABLE userssn( ssn_id SERIAL PRIMARY KEY,
+		username varchar(100), ssn bytea);
+
+	INSERT INTO userssn(username, ssn)
+	SELECT robotccs.username, pgp_pub_encrypt(robotccs.ssn, keys.pubkey) AS ssn
+	FROM (
+			VALUES ('Alice', '123-45-6788'), ('Bob', '123-45-6799'))
+				AS robotccs(username, ssn)
+	CROSS JOIN  (SELECT  dearmor('-----BEGIN PGP PUBLIC KEY BLOCK-----
+	Version: GnuPG v2.0.14 (GNU/Linux)
+
+	mQENBFS1Zf0BCADNw8Qvk1V1C36Kfcwd3Kpm/dijPfRyyEwB6PqKyA05jtWiXZTh
+	2His1ojSP6LI0cSkIqMU9LAlncecZhRIhBhuVgKlGSgd9texg2nnSL9Admqik/yX
+	R5syVKG+qcdWuvyZg9oOOmeyjhc3n+kkbRTEMuM3flbMs8shOwzMvstCUVmuHU/V
+	vG5rJAe8PuYDSJCJ74I6w7SOH3RiRIc7IfL6xYddV42l3ctd44bl8/i71hq2UyN2
+	/Hbsjii2ymg7ttw3jsWAx2gP9nssDgoy8QDy/o9nNqC8EGlig96ZFnFnE6Pwbhn+
+	ic8MD0lK5/GAlR6Hc0ZIHf8KEcavruQlikjnABEBAAG0HHRlc3Qga2V5IDx0ZXN0
+	a2V5QGVtYWlsLmNvbT6JAT4EEwECACgFAlS1Zf0CGwMFCQHhM4AGCwkIBwMCBhUI
+	AgkKCwQWAgMBAh4BAheAAAoJEAd9cl4gJ8wwbfwH/3VyVsPkQl1owRJNxvXGt1bY
+	7BfrvU52yk+PPZYoes9UpdL3CMRk8gAM9bx5Sk08q2UXSZLC6fFOpEW4uWgmGYf8
+	JRoC3ooezTkmCBW8I1bU0qGetzVxopdXLuPGCE7hVWQe9HcSntiTLxGov1mJAwO7
+	TAoccXLbyuZh9Rf5vLoQdKzcCyOHh5IqXaQOT100TeFeEpb9TIiwcntg3WCSU5P0
+	DGoUAOanjDZ3KE8Qp7V74fhG1EZVzHb8FajR62CXSHFKqpBgiNxnTOk45NbXADn4
+	eTUXPSnwPi46qoAp9UQogsfGyB1XDOTB2UOqhutAMECaM7VtpePv79i0Z/NfnBe5
+	AQ0EVLVl/QEIANabFdQ+8QMCADOipM1bF/JrQt3zUoc4BTqICaxdyzAfz0tUSf/7
+	Zro2us99GlARqLWd8EqJcl/xmfcJiZyUam6ZAzzFXCgnH5Y1sdtMTJZdLp5WeOjw
+	gCWG/ZLu4wzxOFFzDkiPv9RDw6e5MNLtJrSp4hS5o2apKdbO4Ex83O4mJYnav/rE
+	iDDCWU4T0lhv3hSKCpke6LcwsX+7liozp+aNmP0Ypwfi4hR3UUMP70+V1beFqW2J
+	bVLz3lLLouHRgpCzla+PzzbEKs16jq77vG9kqZTCIzXoWaLljuitRlfJkO3vQ9hO
+	v/8yAnkcAmowZrIBlyFg2KBzhunYmN2YvkUAEQEAAYkBJQQYAQIADwUCVLVl/QIb
+	DAUJAeEzgAAKCRAHfXJeICfMMOHYCACFhInZA9uAM3TC44l+MrgMUJ3rW9izrO48
+	WrdTsxR8WkSNbIxJoWnYxYuLyPb/shc9k65huw2SSDkj//0fRrI61FPHQNPSvz62
+	WH+N2lasoUaoJjb2kQGhLOnFbJuevkyBylRz+hI/+8rJKcZOjQkmmK8Hkk8qb5x/
+	HMUc55H0g2qQAY0BpnJHgOOQ45Q6pk3G2/7Dbek5WJ6K1wUrFy51sNlGWE8pvgEx
+	/UUZB+dYqCwtvX0nnBu1KNCmk2AkEcFK3YoliCxomdOxhFOv9AKjjojDyC65KJci
+	Pv2MikPS2fKOAg1R3LpMa8zDEtl4w3vckPQNrQNnYuUtfj6ZoCxv
+	=XZ8J
+	-----END PGP PUBLIC KEY BLOCK-----' AS pubkey) AS keys;
+	```
+
+3. 验证`ssn`列是加密的。
+
+	```sql
+	test_db=# select * from userssn;
+	ssn_id   | 1
+	username | Alice
+	ssn      | \301\300L\003\235M%_O
+	\322\357\273\001\010\000\272\227\010\341\216\360\217C\020\261)_\367
+	[\227\034\313:C\354d<\337\006Q\351('\2330\031lX\263Qf\341\262\200\3015\235\036AK
+	\242fL+\315g\322
+	7u\270*\304\361\355\220\021\330"\200%\264\274}R\213\377\363\235\366\030\023)\364!
+	\331\303\237t\277=
+	f \015\004\242\231\263\225%\032\271a\001\035\277\021\375X\232\304\305/
+	\340\334\0131\325\344[~\362\0
+	37-\251\336\303\340\377_\011\275\301/MY\334\343\245\244\372y\257S
+	\374\230\346\277\373W\346\230\276\
+	017fi\226Q\307\012\326\3646\000\326\005:E\364W\252=zz\010(:\343Y\237\257iqU
+	\0326\350=v0\362\327\350\
+	315G^\027:K_9\254\362\354\215<\001\304\357\331\355\323,\302\213Fe
+	\265\315\232\367\254\245%(\\\373
+	4\254\230\331\356\006B\257\333\326H\022\013\353\216F?\023\220\370\035vH5/\227\344b
+	\322\227\026\362=\
+	42\033\322<\001}\243\224;)\030zqX\214\340\221\035\275U\345\327\214\032\351\223c
+	\2442\345\304K\016\
+	011\214\307\227\237\270\026`R\205\205a~1\263\236[\037C
+	\260\031\205\374\245\317\033k|\366\253\037
+	---------
+	+-----------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------
+	ssn_id   | 2
+	username | Bob
+	ssn      | \301\300L\003\235M%_O\322\357\273\001\007\377t>\345\343,
+	\200\256\272\300\012\033M4\265\032L
+	L[v\262k\244\2435\264\232B\357\370d9\375\011\002\327\235<\246\210b\030\012\337@
+	\226Z\361\246\032\00
+	7`\012c\353]\355d7\360T\335\314\367\370;X\371\350*\231\212\260B
+	\010#RQ0\223\253c7\0132b\355\242\233\34
+	1\000\370\370\366\013\022\357\005i\202~\005\\z\301o\012\230Z\014\362\244\324&\243g
+	\351\362\325\375
+	\213\032\226$\2751\256XR\346k\266\030\234\267\201vUh\004\250\337A\231\223u
+	\247\366/i\022\275\276\350\2
+	20\316\306|\203+\010\261;\232\254tp\255\243\261\373Rq;\316w\357\006\207\374U
+	\333\365\365\245hg\031\005
+	\322\347ea\220\015l\212g\337\264\336b\263\004\311\210.4\340G+\221\274D
+	\035\375\2216\241`\346a0\273wE\2
+	12\342y^\202\262|A7\202t\240\333p\345G\373\253\243oCO
+	\011\360\247\211\014\024{\272\271\322<\001\267
+	\347\240\005\213\0078\036\210\307$\317\322\311\222\035\354\006<
+	\266\264\004\376\251q\256\220(+\030\
+	3270\013c\327\272\212%\363\033\252\322\337\354\276\225\232\201\212^\304\210\2269@
+	\3230\370{
+	```
+
+4. 从数据库中得到 public.key ID :
+
+	```sql
+	SELECT pgp_key_id(dearmor('-----BEGIN PGP PUBLIC KEY BLOCK-----
+	Version: GnuPG v2.0.14 (GNU/Linux)
+
+	mQENBFS1Zf0BCADNw8Qvk1V1C36Kfcwd3Kpm/dijPfRyyEwB6PqKyA05jtWiXZTh
+	2His1ojSP6LI0cSkIqMU9LAlncecZhRIhBhuVgKlGSgd9texg2nnSL9Admqik/yX
+	R5syVKG+qcdWuvyZg9oOOmeyjhc3n+kkbRTEMuM3flbMs8shOwzMvstCUVmuHU/V
+	vG5rJAe8PuYDSJCJ74I6w7SOH3RiRIc7IfL6xYddV42l3ctd44bl8/i71hq2UyN2
+	/Hbsjii2ymg7ttw3jsWAx2gP9nssDgoy8QDy/o9nNqC8EGlig96ZFnFnE6Pwbhn+
+	ic8MD0lK5/GAlR6Hc0ZIHf8KEcavruQlikjnABEBAAG0HHRlc3Qga2V5IDx0ZXN0
+	a2V5QGVtYWlsLmNvbT6JAT4EEwECACgFAlS1Zf0CGwMFCQHhM4AGCwkIBwMCBhUI
+	AgkKCwQWAgMBAh4BAheAAAoJEAd9cl4gJ8wwbfwH/3VyVsPkQl1owRJNxvXGt1bY
+	7BfrvU52yk+PPZYoes9UpdL3CMRk8gAM9bx5Sk08q2UXSZLC6fFOpEW4uWgmGYf8
+	JRoC3ooezTkmCBW8I1bU0qGetzVxopdXLuPGCE7hVWQe9HcSntiTLxGov1mJAwO7
+	TAoccXLbyuZh9Rf5vLoQdKzcCyOHh5IqXaQOT100TeFeEpb9TIiwcntg3WCSU5P0
+	DGoUAOanjDZ3KE8Qp7V74fhG1EZVzHb8FajR62CXSHFKqpBgiNxnTOk45NbXADn4
+	eTUXPSnwPi46qoAp9UQogsfGyB1XDOTB2UOqhutAMECaM7VtpePv79i0Z/NfnBe5
+	AQ0EVLVl/QEIANabFdQ+8QMCADOipM1bF/JrQt3zUoc4BTqICaxdyzAfz0tUSf/7
+	Zro2us99GlARqLWd8EqJcl/xmfcJiZyUam6ZAzzFXCgnH5Y1sdtMTJZdLp5WeOjw
+	gCWG/ZLu4wzxOFFzDkiPv9RDw6e5MNLtJrSp4hS5o2apKdbO4Ex83O4mJYnav/rE
+	iDDCWU4T0lhv3hSKCpke6LcwsX+7liozp+aNmP0Ypwfi4hR3UUMP70+V1beFqW2J
+	bVLz3lLLouHRgpCzla+PzzbEKs16jq77vG9kqZTCIzXoWaLljuitRlfJkO3vQ9hO
+	v/8yAnkcAmowZrIBlyFg2KBzhunYmN2YvkUAEQEAAYkBJQQYAQIADwUCVLVl/QIb
+	DAUJAeEzgAAKCRAHfXJeICfMMOHYCACFhInZA9uAM3TC44l+MrgMUJ3rW9izrO48
+	WrdTsxR8WkSNbIxJoWnYxYuLyPb/shc9k65huw2SSDkj//0fRrI61FPHQNPSvz62
+	WH+N2lasoUaoJjb2kQGhLOnFbJuevkyBylRz+hI/+8rJKcZOjQkmmK8Hkk8qb5x/
+	HMUc55H0g2qQAY0BpnJHgOOQ45Q6pk3G2/7Dbek5WJ6K1wUrFy51sNlGWE8pvgEx
+	/UUZB+dYqCwtvX0nnBu1KNCmk2AkEcFK3YoliCxomdOxhFOv9AKjjojDyC65KJci
+	Pv2MikPS2fKOAg1R3LpMa8zDEtl4w3vckPQNrQNnYuUtfj6ZoCxv
+	=XZ8J
+	-----END PGP PUBLIC KEY BLOCK-----'));
+	pgp_key_id | 9D4D255F4FD2EFBB
+	```
+
+	结果显示被用来加密`ssn`列的PGP key ID是9D4D255F4FD2EFBB。当一个新的秘钥被创建时建议执行这一步操作，然后把ID存储起来用于追溯。
+
+	你可以使用该秘钥来查看那个密钥对被用来加密数据：
+
+	```sql
+	SELECT username, pgp_key_id(ssn) As key_used
+	FROM userssn;
+
+	username | Bob
+	key_used | 9D4D255F4FD2EFBB
+	---------+-----------------
+	username | Alice
+	key_used | 9D4D255F4FD2EFBB
+	```
+
+	注意：不用的秘钥可以具有相同的ID。这很罕见，但是也属正常。客户端程序应该尝试使用每个来确认那个可以适用——就像拿着`ANYKEY`。参见pgcrypto文档中的[pgp_key_id()](http://www.postgresql.org/docs/8.3/static/pgcrypto.html)。
+
+5. 使用私钥解密数据：
+
+	```SQL
+	SELECT username, pgp_pub_decrypt(ssn, keys.privkey)
+                 AS decrypted_ssn FROM userssn
+	CROSS JOIN
+			(SELECT dearmor('-----BEGIN PGP PRIVATE KEY BLOCK-----
+	Version: GnuPG v2.0.14 (GNU/Linux)
+
+	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
+	=fa+6
+	-----END PGP PRIVATE KEY BLOCK-----') AS privkey) AS keys;
+
+	username | decrypted_ssn
+	---------+---------------
+	Alice    | 123-45-6788
+	Bob      | 123-45-6799
+	(2 rows)
+	```
+
+	如果你创建了一个带有口令的秘钥，你需要在这里输入它。然后本例中出于演示需要，口令是空的。
+
+### <span id='加密gpfdist连接'>加密gpfdist连接</span>
+
+`gpfdists`协议是`gpfdist`的安全版本，可以安全地鉴别文件服务器和Greenplum数据库，并且加密二者之间的通讯。使用`gpfdists`可以抵抗窃听和中间人攻击。
+
+`gpfdists`协议实现了客户端/服务器的SSL安全，需要注意以下特性：
+* 需要客户端证书。
+* 不支持多语言证书。
+* 比支持证书撤销列表（CRL）。
+* TLSv1协议和`TLS_RSA_WITH_AES_128_CBC_SHA`加密算法一起使用。这些SSL参数不能改变。
+* 支持SSL重新协商。
+* SSL忽略主机不匹配参数被设置为FALSE。
+* 带有口令的私钥不能用于`gpfdist`文件服务器（server.key）和Greenplum数据库（client.key）。
+* 为所使用的操作系统发布适合的证书是用户的责任。一般来说，支持将证书转换为所需格式，比如使用[SSL转换器](https://www.sslshopper.com/ssl-converter.html)。
+
+一个`gpfdist`服务器启动时带有`--ssl`选项，则只能和`gpfdists`协议通讯。如果一个`gpfdist`服务器启动时没带有`--ssl`选项，则只能和`gpfdist`协议通讯。关于`gpfdist`的更多详情，可参考《Greenplum数据管理指南》。
+
+有两种方法启用`gpfdists`协议：
+* 运行带有`--ssl`选项的`gpfdist`并且在`CREATE EXTERNAL TABLE`语句的`LOCATION`子句中使用`gpfdist`。
+* 使用带有SSH选项设置为TRUE的YAML控制文件，并启动`gpload`。`gpload`启动带有`--ssl`选项的`gpfdist`，然后使用`gpfdists`协议。
+
+当时用gpfdists时，如下客户端证书必须放置在每台段服务器的`$PGDATA/gpfdists`目录：
+* 客户端证书文件，`client.crt`
+* 客户端私钥文件，`client.key`
+* 客户端证书文件，`client.crt`
+* 可信证书中心，`root.crt`
+
+	主要： 不要用口令保护私钥。服务器不会为私钥提示口令，如果需要，加载数据就会失败并报错。
+
+当使用带SSL的gpload时，你需要在YAML控制文件中写明服务器的位置。当使用带有SSL的gpfdist时，你需要通过--ssl选项指定服务器证书的位置。
+
+下面的例子演示了怎么将数据安全的装载入外部表。该例子创建了一个可读外部表叫`ext_expenses`，从带有`txt`扩展名的所有文件中使用`gpfdists`协议加载数据。这些文件以竖线(|)作为列定界符、空白作为NULL来格式化数据。
+
+1. 在段主机上运行带有`--ssl`选项的`gpfdist`。
+2. 登录数据库并执行以下命令：
+	```sql
+	=# CREATE EXTERNAL TABLE ext_expenses
+		( name text, date date, amount float4, category text, desc1 text )
+	LOCATION ('gpfdists://etlhost-1:8081/*.txt', 'gpfdists://etlhost-2:8082/*.txt')
+	FORMAT 'TEXT' ( DELIMITER '|' NULL ' ') ;
+	```
+## 第十章 访问基于kerberos的Hadoop集群
+
+利用外部表和`gphdfs`协议，Greenplum数据库可以从Hadoop文件系统(HDFS)中读取和写入文件。Greenplum段服务器可以从HDFS中并行的读写数据以获得较好性能。
+
+当一个Hadoop集群使用Kerberos进行了安全强化(即 "Kerberized")，Greenplum数据库必须先配置其gpadmin角色成为HDFS中外部表的拥有者，并可以通过Kerberos认证。下面将逐步介绍如何配置Greenplum数据库与Kerberos增强的HDFS协同工作，包括配置项的验证和故障排查。
+
+* [预备知识](#Prerequisites)
+* [配置Greenplum集群](#Configuring_the_Greenplum_Cluster)
+* [创建和安装密钥表文件](#Creating_and_Installing_Keytab_Files)
+* [配置带Kerberos的gphdfs](#Configuring_gphdfs_for_Kerberos)
+* [测试Greenplum数据库访问HDFS](#Testing_Greenplum_Database_Access_to_HDFS)
+* [带有Kerberos的HDFS故障排查](#Troubleshooting_HDFS_with_Kerberos)
+
+### <span id='Prerequisites'>预备知识</span>
+
+确保下面组件能正常运行且在网络上可访问：
+
+* Greenplum数据库集群——无论是一个Pivotal数据库软件集群，还是一个EMC DCA一体机。
+* Kerberos安全增强的Hadoop集群。所支持的Hadoop版本可参见《Greenplum数据库发行说明》。
+* Kerberos密钥分发中心(KDC)服务器。
+
+### <span id='Configuring_the_Greenplum_Cluster'>配置Greenplum集群</span>
+
+Greenplum集群中所有主机都要安装Java JRE、Hadoop客户端文件和Kerberos客户端。
+
+按照如下步骤准备Greenplum集群。
+
+1. 在所有Greenplum集群主机上安装 Java JRE 1.6及更高版本。
+
+Hadoop集群需要匹配的JRE版本才能运行。你可以在Hadoop节点上通过`java --version`命令来确认JRE版本。
+
+2. （可选）确认Java加密扩展(JCE)可用的。
+
+JCE库的缺省位置是`JAVA_HOME/lib/security`。如果安装了JDK，其缺省目录是`JAVA_HOME/jre/lib/security`。文件`local_policy.jar`和`local_policy.jar`应该存在于JCE目录中。
+
+Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需要，你可以从Kerberos服务器上将JCE文件拷贝到Greenplum集群中。
+
+3. 将对应JRE位置的`JAVA_HOME`环境变量加入到`gpadmin`账号的`.bashrc`文件或者`.bash_profile`中，例如：
+
+	export JAVA_HOME=/usr/java/default
+
+4. Source`.bashrc`文件或者`.bash_profile`文件使上述修改能够生效，例如：
+
+	$ source ~/.bashrc
+
+5. 在所有集群主机上安装Kerberos客户端工具。在安装之前要确保其库版本与KDC服务器上是匹配的。
+
+例如，用下面的命令在Red Hat或CentOS Linux上安装Kerberos客户端文件：
+
+	$ sudo yum install krb5-libs krb5-workstation
+
+可以用`kinit`命令来确认Kerberos客户端已经安装和配置成功了。
+
+6. 在Greenplum集群所有主机上安装Hadoop客户端文件。可以参考你的Hadoop发布版文档中的说明。
+
+7. 在Greenplum数据库服务器上设为Hadoop配置参数。`gp_hadoop_target_version`参数指定了Hadoop集群的版本，可从《Greenplum数据库发行说明》查找你Hadoop发布版对应的版本值。`gp_hadoop_home`参数指定了Hadoop安装目录。
+
+	$ gpconfig -c gp_hadoop_target_version -v "hdp2"
+	$ gpconfig -c gp_hadoop_home -v "/usr/lib/hadoop"
+
+详情可参见《Greenplum数据库参考指南》。
+
+8. 为Greenplum数据库的主服务器和段服务器重新加载更新过的`postgresql.conf`文件：
+
+	gpstop -u
+
+你可以用下面的命令来确认这些改变：
+
+	$ gpconfig -s gp_hadoop_target_version
+	$ gpconfig -s gp_hadoop_home
+
+9. 将Greenplum数据库gphdfs协议权限授予拥有HDFS外部表的角色，包括`gpadmin`和其他超级用户角色。赋予`SELECT`权限使之可以在HDFS中创建可读外部表。赋予`INSERT`权限使之可以在HDFS中创建可写外部表。
+
+	#= GRANT SELECT ON PROTOCOL gphdfs TO gpadmin;
+	#= GRANT INSERT ON PROTOCOL gphdfs TO gpadmin;
+
+10. 将Greenplum数据库外部表权限赋予外部表所有者角色：
+
+	ALTER ROLE HDFS_USER CREATEEXTTABLE (type='readable'); 
+	ALTER ROLE HDFS_USER CREATEEXTTABLE (type='writable');
+
+注意：最佳实践——至少每年要检查包括gphdfs外部表权限等数据库权限。
+
+### <span id='Creating_and_Installing_Keytab_Files'>创建和安装密钥表文件</span>
+
+1. 以root身份登录KDC服务器。
+
+2. 使用`kadmin.local`命令为`gpadmin`用户创建一个新的用户主体(Principal)
+
+	# kadmin.local -q "addprinc -randkey gpadmin@LOCAL.DOMAIN"
+
+3. 使用`kadmin.local`命令为Greenplum集群中每个主机生成一个Kerberos服务主体。服务主体的格式是：_name/role@REALM_，此处：
+	* _name_ 是gphdfs服务用户名字。本例子中使用`gphdfs`。
+	* _role_ 一个Greenplum集群主机可以被DNS解析的主机名（是`hostname -f`命令的输出）。
+	* _REALM_ 是Kerberos域（realm），比如`LOCAL.DOMAIN`。
+
+例如，下面命令添加了四个Greenplum主机（mdw.example.com，smdw.example.com，sdw1.example.com和sdw2.example.com）的服务主体：
+
+	# kadmin.local -q "addprinc -randkey gphdfs/mdw.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "addprinc -randkey gphdfs/smdw.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "addprinc -randkey gphdfs/sdw1.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "addprinc -randkey gphdfs/sdw2.example.com@LOCAL.DOMAIN"
+
+为每个Greenplum集群主机创建一个主体。使用相同的主体名称和域，以替代每个主机的完整限定域名(FQDN)。
+
+4. 为你创建的每个主体(`gpadmin`和每一个`gphdfs`服务主体)生成一个密钥表文件(keytab)。你可以将密钥表文件保存到任意方便的位置（本例子中使用目录`/etc/security/keytabs`）。 你可以用下面步骤将服务主体的密钥表文件部署到他们各自的Greenplum主机上：
+
+	# kadmin.local -q "xst -k /etc/security/keytabs/gphdfs.service.keytab
+	gpadmin@LOCAL.DOMAIN"
+	# kadmin.local -q "xst -k /etc/security/keytabs/mdw.service.keytab gpadmin/mdw
+	gphdfs/mdw.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "xst -k /etc/security/keytabs/smdw.service.keytab gpadmin/smdw
+	gphdfs/smdw.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "xst -k /etc/security/keytabs/sdw1.service.keytab gpadmin/sdw1
+	gphdfs/sdw1.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "xst -k /etc/security/keytabs/sdw2.service.keytab gpadmin/sdw2
+	gphdfs/sdw2.example.com@LOCAL.DOMAIN"
+	# kadmin.local -q "listprincs"
+
+5. 如下修改`gphdfs.service.keytab`的所有权和访问权限：
+
+	# chown gpadmin:gpadmin /etc/security/keytabs/gphdfs.service.keytab
+	# chmod 440 /etc/security/keytabs/gphdfs.service.keytab
+
+6. 将`gpadmin@LOCAL.DOMAIN`的秘钥文件拷贝到Greenplum主服务器上去：
+
+	# scp /etc/security/keytabs/gphdfs.service.keytab mdw_fqdn:/home/gpadmin/gphdfs.service.keytab
+
+7. 将每个服务主体的秘钥文件拷贝到各自Greenplum主机上去：
+
+	# scp /etc/security/keytabs/mdw.service.keytab mdw_fqdn:/home/gpadmin/mdw.service.keytab
+	# scp /etc/security/keytabs/smdw.service.keytab smdw_fqdn:/home/gpadmin/smdw.service.keytab
+	# scp /etc/security/keytabs/sdw1.service.keytab sdw1_fqdn:/home/gpadmin/sdw1.service.keytab
+	# scp /etc/security/keytabs/sdw2.service.keytab sdw2_fqdn:/home/gpadmin/sdw2.service.keytab
+	￼
+### <span id='Configuring_gphdfs_for_Kerberos'>配置基于Kerberos的gphdfs</span>
+
+1. 在Greenplum集群所有主机上编辑Hadoop客户端配置文件`core-site.xml`。 将`hadoop.security.authorization`属性设置为`true`以启动Hadoop服务级认证。例如：
+
+	<property>
+		<name>hadoop.security.authorization</name>
+		<value>true</value>
+	</property>
+
+2. 在Greenplum集群所有主机上编辑客户端配置文件`yarn-site.xml`。将资源管理器地址和YARN Kerberos服务主体。例如：
+
+	<property>
+		<name>yarn.resourcemanager.address</name>
+		<value>hostname:8032</value>
+	</property>
+	<property>
+		<name>yarn.resourcemanager.principal</name>
+		<value>yarn/hostname@DOMAIN</value>
+	</property>
+
+3. 在Greenplum集群所有主机上编辑客户端配置文件`hdfs-site.xml`。需要设置标识主节点(NameNode)的Kerberos主体、Kerberos密码文件的位置，主体是用来：
+
+* `dfs.namenode.kerberos.principal` - gphdfs协议用于NameNode的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
+* `dfs.namenode.https.principal` - gphdfs协议用于NameNode的安全HTTP服务器的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
+* `com.emc.greenplum.gpdb.hdfsconnector.security.user.keytab.file` - 用于Kerberos HDFS服务的秘钥文件的路径，比如 `gpadmin@LOCAL.DOMAIN`。
+* `com.emc.greenplum.gpdb.hdfsconnector.security.user.name` - 主机的gphdfs服务主体，比如 `gphdfs/mdw.example.com@LOCAL.DOMAIN`。
+
+举例：
+
+	<property>
+		<name>dfs.namenode.kerberos.principal</name>
+		<value>gphdfs/gpadmin@LOCAL.DOMAIN</value>
+	</property>
+	<property>
+		<name>dfs.namenode.https.principal</name>
+		<value>gphdfs/gpadmin@LOCAL.DOMAIN</value>
+	</property>
+	<property>
+		<name>com.emc.greenplum.gpdb.hdfsconnector.security.user.keytab.file</name>
+		<value>/home/gpadmin/gpadmin.hdfs.keytab</value>
+	</property>
+	<property>
+		<name>com.emc.greenplum.gpdb.hdfsconnector.security.user.name</name>
+		<value>gpadmin/@LOCAL.DOMAIN</value>
+	</property>
+
+### <span id='Testing_Greenplum_Database_Access_to_HDFS'>测试Greenplum数据库访问HDFS</span>
+
+确保可以在Greenplum集群的所有主机上通过Kerberos认证来访问HDFS。例如，通过下面的命令来列出一个HDFS目录：
+
+	hdfs dfs -ls hdfs://namenode:8020
+
+#### 在HDFS中创建一个可读外部表
+
+按照下述步骤来确认你可以在一个基于Kerberos的(即 "Kerberized")Hadoop集群上创建一个可读外部表。
+
+1. 创建一个逗号分开的文本文件，`test1.txt`，文件内容如下：
+
+	25, Bill
+	19, Anne
+	32, Greg
+	27, Gloria
+
+2.  将该样本文件持久存储在HDFS中
+
+	hdfs dfs -put test1.txt hdfs://namenode:8020/tmp
+
+3. 登陆Greenplum数据库，并创建可以可读外部表指向Hadoop中的`test1.txt`：
+
+	CREATE EXTERNAL TABLE test_hdfs (age int, name text)
+	LOCATION('gphdfs://namenode:8020/tmp/test1.txt')
+	FORMAT 'text' (delimiter ',');
+
+4. 从外部表中读数据：
+
+	SELECT * FROM test_hdfs;
+
+#### 在HDFS中创建一个可写外部表
+
+按照下述步骤来确认你可以在一个基于Kerberos的(即 "Kerberized")Hadoop集群上创建一个可写外部表。
+这些步骤中使用了之前创建的可读外部表`test_hdfs`。
+
+1. 登陆Greenplum数据库，并创建可以可写外部表指向Hadoop中的一个文件：
+
+	CREATE WRITABLE EXTERNAL TABLE test_hdfs2 (LIKE test_hdfs)
+	LOCATION ('gphdfs://namenode:8020/tmp/test2.txt'
+	FORMAT 'text' (DELIMITER ',');
+
+2. 将数据加载入可写外部表：
+
+	INSERT INTO test_hdfs2
+	SELECT * FROM test_hdfs;
+
+3. 查看文件是否存在于HDFS中：
+
+	hdfs dfs -ls hdfs://namenode:8020/tmp/test2.txt
+
+4. 验证外部文件的内容
+
+	hdfs dfs -cat hdfs://namenode:8020/tmp/test2.txt
+
+
+### <span id='Troubleshooting_HDFS_with_Kerberos'>带有Kerberos的HDFS故障排查</span>
+
+#### 强制添加Classpaths
+
+如果你在从`gphdfs`外部表中执行`SELECT`语句时候遇到"class not fund"的错误，可编辑`$GPHOME/lib/hadoop-env.sh`文件，将下面这些行添加到文件末尾，然后设置`JAVA_LIBRARY_PATH`。 在所有的集群主机上更新该脚本。
+
+	if [ -d "/usr/hdp/current" ]; then
+	for f in /usr/hdp/current/**/*.jar; do
+		CLASSPATH=${CLASSPATH}:$f;
+	done
+	fi
+
+#### 启用Kerberos客户端Debug信息
+
+要查看Kerberos客户端的debug信息，可以在所有集群主机上编辑客户端Shell脚本`$GPHOME/lib/hadoop-env.sh`，将`HADOOP_OPTS`变量设置为：
+
+	export HADOOP_OPTS="-Djava.net.prefIPv4Stack=true -Dsun.security.krb5.debug=true ${HADOOP_OPTS}"
+
+#### 调整段主机上的JVM进程内存
+
+每个段服务器会启动一个JVM进程来读取或者写入HDFS上的一个外部表。要修改每个JVM进程所申请的内存数量，可以配置 `GP_JAVA_OPT`环境变量。
+
+在所有集群主机上编辑客户端Shell脚本`$GPHOME/lib/hadoop-env.sh`， 比如：
+
+	export GP_JAVA_OPT=-Xmx1000m
+
+#### 验证Kerberos安全设置
+
+查看`/etc/krb5.conf`文件：
+
+* 如果AES256加密没有被禁用了，确保所有集群主机上安装了JCE的无限制权限策略文件("Unlimited Strength Jurisdiction Policy Files")。
+* 确信Kerberos秘钥文件中的所有加密类型都匹配`krb5.conf`文件中的定义。
+
+	cat /etc/krb5.conf | egrep supported_enctypes
+
+#### 测试单个段服务器主机的连通性
+
+按照以下步骤来测试单个Greenplum主机能否读取HDFS数据。该测试方法通过命令行执行Greenplum的Java类`HDFSReader`，在数据库外辅助排查连通性问题。
+
+1. 讲一个样本文件保存如HDFS。
+
+	hdfs dfs -put test1.txt hdfs://namenode:8020/tmp
+
+2. 在待测试的段主机上创建一个环境脚本`env.sh`，如下所示：
+
+	export JAVA_HOME=/usr/java/default
+	export HADOOP_HOME=/usr/lib/hadoop
+	export GP_HADOOP_CON_VERSION=hdp2
+	export GP_HADOOP_CON_JARDIR=/usr/lib/hadoop
+
+3. 使用source命令加载所有的环境脚本：
+
+	source /usr/local/greenplum-db/greenplum_path.sh
+	source env.sh
+	source $GPHOME/lib/hadoop-env.sh
+
+4. 测试Greenplum的HDFS读取功能
+
+	java com.emc.greenplum.gpdb.hdfsconnector.HDFSReader 0 32 TEXT hdp2 gphdfs://namenode:8020/tmp/test1.txt
 
 ## 第十一章 SQL 查询调优
 
