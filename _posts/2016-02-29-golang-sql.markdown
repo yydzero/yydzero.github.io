@@ -512,3 +512,79 @@ cn.startup(o): 启动握手处理，直到出错，或者 connection ready for q
                     内部根据返回的类型的 oid 进行分别处理。
 
 
+
+### Tips
+
+参见: http://go-database-sql.org/surprises.html
+
+sql.DB 不是一个数据库连接, 它是数据库接口的一个抽象. 它通过 driver 打开或者关闭和底层数据库的实际连接, 并且管理一个连接池.
+
+sql.DB 的主要抽象目的是让使用者不用关心对底层数据库的并发访问细节. 一个连接执行任务时标记为使用状态,用完后,返还给连接池.
+
+#### Open/Close
+
+sql.Open() 不会连接任何连接, 也不会验证任何连接参数. 它仅仅准备数据库抽象层以备后用. 第一个连接是第一次需要时才建立.
+
+sql.DB 是一个设计为长期存在的对象, 不要频繁调用 Open 和 Close. 一般建立一个 sql.DB 对象, 在整个程序生命周期内使用.
+
+#### 执行查询
+
+Query* 函数执行 SQL 查询,并返回0个或者多个 rows; 不返回 rows 的查询需要使用 Exec() 执行.
+
+只要是一个连接还有没处理的 result set, 那么底层的连接就是忙碌的,因而不能被其他查询重用该链接. 也就是说这个连接不能回到连接池中. 确保调用
+rows.Close() 以释放所有的 result set.
+
+* preparing queries: 建议调用 stmt := db.Prepare() 之后多次使用 stmt.Query() 执行查询.  db.Query() 底层会准备/执行/关闭 prepared
+语句, 这是三次数据库通讯. 有些 driver 对此进行了优化,但不是所有的数据库都做了这个优化. pg driver 对此进行了优化.
+* scan(): 如果不知道类型,则使用 sql.RawBytes. 然后可以检查 NULL 和数据类型.
+
+永远不要使用下面的语句:
+
+    _, err := db.Query("DELETE FROM users")
+
+#### 事务
+
+在 go sql 中,事务是一个占有连接的对象, 它确保事务内的所有语句在同一个连接上执行..
+
+db.Begin() 开始一个事务, 使用 Tx 的 Commit 和 Rollback 关闭事务. 事务内 prepare 的语句只能在事务内执行. 避免使用 SQL 事务语句( BEGIN/COMMIT),
+否则会导致连接错乱.
+
+#### Prepared Statements
+
+在数据库级别, 一个 prepared statement 绑定到一个数据连接上. 当 prepare 一个 SQL 语句是,它在池中的某个连接上执行准备操作, 并返回
+Stmt 对象, Stmt 对象会记住那个 connection, 使用 Stmt 执行语句时, 它试图使用记住的连接, 如果连接不可用,则从 pool 中重新获得一个连接,并
+重新 prepare.  所以大量使用,可能会造成抖动...
+
+如果在事务内使用 prepared 语句,则总是绑定都一个连接上执行.
+
+#### 连接池
+
+golang sql 包提供了简单的连接池功能. 使用时需要注意:
+
+* 使用了连接池,则意味着前后两个语句可能使用不同的连接执行. 例如 INSERT 跟在 LOCK TABLES 之后可能会阻塞,因为执行 INSERT 的连接可能不是
+  执行 LOCK TABLE 语句的那个连接.
+* 在没有空闲连接时才创建新的连接, 默认没有连接数限制. 如果同时执行大量事情,可能造成 "too many connections" 错误.
+* 连接会较快的回收, 设置较大的 db.SetMaxIdleConns() 可以降低这个问题.
+
+#### 资源消耗
+
+* Open 和 close 数据库很好资源. sql.DB 打开一次, 可以被多个 goroutine 并发使用.
+* 如果没有读取所有的 rows 或者没有使用 rows.Close(), 则会持续占用连接池中的连接.
+* 使用 Query() 执行不返回 rows 的语句, 例如 DDL 语句会持续占用连接池中的连接.
+* 不正确使用 prepared statements 将造成大量数据库操作.
+
+#### 连接状态不匹配
+
+有些连接状态,例如是否在事务中,需要由 go types (避免使用 SQL, 例如BEGIN/COMMIT 等) 处理. 一个 goroutine 的查询有可能使用不同的连接执行.
+
+例如使用 'USE' 设置当前数据库是常用操作, 然而在 Go sql 中, 他只影响执行这个命令的连接(除非在事务中), 而随后的其他查询可能在完全不同的连接上
+执行.
+
+此外如果改变了连接的状态后, 连接进入池中, 在被其他人使用,则会影响其他代码的状态.  所以严禁直接使用 BEGIN/COMMIT SQL 语句. 而是使用
+响应的 golang sql 中的 Tx 来处理事务.  这样可以避免处于事务中的连接被返还给连接池.
+
+#### 其他
+
+* 不支持一个语句返回多个 ResultSet, 譬如一个 UDF 返回多个 result set.
+* 多语句支持
+* 不能并行处理事务内的语句,因为事务内的语句需要串行处理;  不在事务内的语句可能并行在不同的连接上执行.
