@@ -57,6 +57,18 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     $ make
     $ make install
 
+On MAC OS X EL Capitan
+
+    ± |master ✗| → cat build.sh
+    #!/bin/bash
+
+    #ENABLE_ORCA=--enable-orca
+
+    DEBUG=-ggdb3
+    #DEBUG=-glldb
+
+    CFLAGS="-O0 -g3 $DEBUG" CPPFLAGS="-I/usr/local/opt/openssl/include/" LDFLAGS="-L/usr/local/opt/openssl/lib -Wl,-rpath,/usr/local/opt/openssl/lib"  ./configure --prefix=/Users/yyao/work/build/master --with-gssapi --with-pgport=5432 --with-libedit-preferred --with-perl --with-python --with-openssl --with-pam --with-krb5 --with-ldap --with-libxml --enable-cassert --enable-debug --enable-testutils --enable-debugbreak --enable-depend --no-create --no-recursion $ENABLE_ORCA --disable-gpfdist
+
 #### 3.2 编译GPDB扩展组件代码（以gpfdist为例）
 
 	缺省一些组件的代码不是自动编译的，下面以gpfdist为例解释一下怎么编译GPDB的组件
