@@ -10,6 +10,10 @@ published: true
 
 ## Golang 小技巧
 
+### once.Do 保证仅仅执行一次
+
+典型的例子是使用 once.Do 实现 singleton： http://marcio.io/2015/07/singleton-pattern-in-go/
+
 ### 使用 defer 把函数结果放到 channel 中
 
 这样函数可以同时返回结果给调用者； 也可以使用 goroutine 执行，并通过channel获得执行结果
