@@ -353,7 +353,7 @@ Greenplum 数据库中同一数据库实例的不同 `postgres` 进程间通讯�
 
 	(swap + (RAM * vm.overcommit_ratio)) * .9 / number_of_Segments_per_server
 
-例如，具有下面配置的段服务器：
+例如，具有下面配置的段服务器（Segment）：
 
 * 8GB 交换空间
 * 128GB 内存
@@ -1259,7 +1259,7 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 
 ### `gptransfer` 能做什么
 
-`gptransfer` 使用可读可写的外部表、Greenplum的`gpfdist` 并行数据加载工具、以及命名管道来实现数据从源数据库到目标数据库的迁移。源集群上的段服务器从源数据库表中选择数据并插入到可写的外部表。目标集群上的段服务器从可读的外部表中选择数据并插入到目标数据库表中。其中，可读的和可写的外部表依赖于源集群上的段服务器主机上的命名管道，而且每个命名管道有一个`gpfdist`进程负责该管道输出到目标段服务器上的可读外部表。
+`gptransfer` 使用可读可写的外部表、Greenplum的`gpfdist` 并行数据加载工具、以及命名管道来实现数据从源数据库到目标数据库的迁移。源集群上的段服务器（Segment）从源数据库表中选择数据并插入到可写的外部表。目标集群上的Segment从可读的外部表中选择数据并插入到目标数据库表中。其中，可读的和可写的外部表依赖于源集群上的Segment主机上的命名管道，而且每个命名管道有一个 `gpfdist` 进程负责该管道输出到目标Segment上的可读外部表。
 
 `gptransfer` 负责协调数据库对象迁移的批处理流程。对于每一个待迁移的数据表，它执行以下操作：
 
@@ -1277,27 +1277,25 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 * Greenplum集群的源和目标集群的版本都必须是4.2及以上。
 * 至少一个Greenplum实例具有`gptransfer`工具，该工具可以在GPDB 4.2.8.1及以上版本和4.3.2.0及以上版本中找到。如果迁移的数据源和目标集群都没有`gptransfer`， 你必须升级至少一个集群来使用`gptransfer`。
 * `gptransfer`工具可以从迁移的数据源或目标集群上启动。
-* 目标集群中段服务器的数目必须大于或等于源集群中主机数。其中，目标集群中的段服务器数目可以小于源主机中的段服务器数目，但是数据迁移效率会比较低。
+* 目标集群中段服务器（Segment）的数目必须大于或等于源集群中主机数。其中，目标集群中的Segment数目可以小于源主机中的Segment数目，但是数据迁移效率会比较低。
 * 无论源集群还是目标集群中的段主机都必须能够通过网络彼此互联互通
 * 无论源集群还是目标集群中的每台主机都必须能够通过带证书认证的SSH协议连接彼此。你可以通过`gpssh_exkeys`来在两个集群之间交换公钥。
 
 ### 快速和慢速模式
 
-`gptransfer` 通过`gpfdist`并行文件服务工具实现数据迁移，后者为目标段数据库提供对等服务。
-运行更过的`gpfdist`进程可以增加并行度和数据迁移速率。当目标集群有相同的或者比源集群更多的段服务器数，
-`gptransfer` 将为每一个源段服务器启动一个命名管道和`gpfdist`进程。这是为数据迁移速率的优化配置，又称为_快速模式_。
+`gptransfer` 通过 `gpfdist` 并行文件服务工具实现数据迁移，后者为目标段数据库提供对等服务。运行更过的 `gpfdist` 进程可以增加并行度和数据迁移速率。当目标集群有相同的或者比源集群更多的Segment数目，`gptransfer` 将为每一个源Segment启动一个命名管道和 `gpfdist` 进程。这是为数据迁移速率的优化配置，又称为_快速模式_。
 
-如果目标集群上的段服务器数目少于源集群，命名管道输入端的配置会不一样。 `gptransfer`会自动选择替换配置。配置中的差别意味着，
-如果目标集群中的段服务器数目少于源数据库中段的数目，其数据迁移速率不会像比源集群具有更多段服务器的目标集群中迁移那么快。
-这种称之为_慢速模式_，因为负责往目标集群提供数据的`gpfdist`进程的数量要少一些。尽管如此，每个段数据库启动一个`gpfdist`
+如果目标集群上的段服务器（Segment）数目少于源集群，命名管道输入端的配置会不一样。 `gptransfer` 会自动选择替换配置。配置中的差别意味着，
+如果目标集群中的Segment数目少于源数据库中Segment的数目，其数据迁移速率不会像比源集群具有更多Segment的目标集群中迁移那么快。
+这种称之为_慢速模式_，因为负责往目标集群提供数据的 `gpfdist` 进程的数量要少一些。尽管如此，每个段数据库启动一个 `gpfdist`
 进行数据迁移的速度仍然很快。
 
-当目标集群比源集群小的时候，每个段主机启动一个命名管道，该主机上的所有段服务器通过该命名管道发送数据。源主机上的所有段服务器
+当目标集群比源集群小的时候，每个段主机启动一个命名管道，该主机上的所有Segment通过该命名管道发送数据。源主机上的所有Segment
 将它们的数据写入一个可写Web外部表，该外部表连接在`gpfdist`进程的命名管道的输入端，藉此将表数据整合到单个命名管道上。另有一个
 `gpfdist`进程在命名管道的输出端将整合数据写入目标集群。
 
 在目标端，`gptransfer`定义了一个可读外部表，在源主机对应启动一个`gpfdist`服务的作为该外部表的输入，并通过SELECT语句从
-该可读外部表将数据注入目标表。数据在目标集群的所有段服务器上均匀分布。
+该可读外部表将数据注入目标表。数据在目标集群的所有Segment上均匀分布。
 
 ### 批大小和子批大小
 
@@ -1309,19 +1307,18 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 
 ### 准备gptransfer的主机
 
-当你安装一个Greenplum数据集群的时候，你需要配置所有的主服务器和段服务器主机，使得Greenplum数据管理人员(`gpadmin`)可以在该集群的任一主机上
-通过SSH连接集群中任何其他主机而无需输入密码。`gptransfer`工具要求源集群和目标集群之间的任一主机之间达到该功能。首先，确保集群之间有网络可以
-连通彼此；然后，准备一个包含两个集群上所有主机的列表文件，通过`gpssh-exkeys`工具来交换公钥。请参照Greenplum Database Utility Guide中
+当你安装一个Greenplum数据集群的时候，你需要配置所有的主服务器和段服务器（Segment）主机，使得Greenplum数据管理人员(`gpadmin`)可以在该集群的任一主机上
+通过SSH连接集群中任何其他主机而无需输入密码。`gptransfer` 工具要求源集群和目标集群之间的任一主机之间达到该功能。首先，确保集群之间有网络可以
+连通彼此；然后，准备一个包含两个集群上所有主机的列表文件，通过 `gpssh-exkeys` 工具来交换公钥。请参照Greenplum Database Utility Guide中
 `gpssh-exkeys`部分内容。
 
-主机映射文件是一个列举源集群上所有段服务器的文本文件，用来辅助Greenplum集群中主机之间的通讯。`gptransfer`通过命令行选项
-`--source-map-file=host_map_file`加载该文件，它是在两个分离的Greenplum集群之间复制数据的必选项。
+主机映射文件是一个列举源集群上所有Segment的文本文件，用来辅助Greenplum集群中主机之间的通讯。`gptransfer` 通过命令行选项 `--source-map-file=host_map_file` 加载该文件，它是在两个分离的Greenplum集群之间复制数据的必选项。
 
 该文件包含一个如下格式所示的列表：
 
-    host1_name,host1_ip_addr
-    host2_name,host2_ipaddr
-    ...
+	host1_name,host1_ip_addr
+	host2_name,host2_ipaddr
+	...
 
 该文件使用IP地址而非主机名以避免集群之间的名字解析中可能遇到的问题。
 
@@ -1330,8 +1327,8 @@ Greenplum数据库外部表可以访问数据库之外的数据。可以使用`S
 `gptransfer`只迁移用户数据库，其他诸如`postgres`、`template0`和`template1`等数据库不会被迁移。管理员需要手动迁移配置文件
 并在目标数据库中使用`gppkg`安装扩展组件。
 
-目标集群至少要有源集群中段主机一样数目的段服务器。向小集群迁移数据不会像往大集群迁移那么快速。迁移小的或者空的数据表可能会出乎意料的慢，
-因为无论是否有实际数据需要迁移，在设置外部表和段服务器之间并行数据加载的通讯进程等都需要不小的固定开销。
+目标集群至少要有源集群中段主机一样数目的段服务器（Segment）。向小集群迁移数据不会像往大集群迁移那么快速。迁移小的或者空的数据表可能会出乎意料的慢，
+因为无论是否有实际数据需要迁移，在设置外部表和Segment之间并行数据加载的通讯进程等都需要不小的固定开销。
 
 ### 完整模式和表模式
 
@@ -1359,9 +1356,9 @@ Indexes           | Yes       | Yes
 Roles             | Yes       | No
 Functions         | Yes       | No
 Resource Queues   | Yes       | No
-`postgres.conf`   | No        | No
-`pg_hba.conf`     | No        | No
-`gppkg`           | No        | No
+_postgres.conf_   | No        | No
+_pg\_hba.conf_    | No        | No
+_gppkg_           | No        | No
 
 如果你想逐步拷贝一个数据库，比如，在预定关机或低活跃时间区间，可以通过`--full`和`--schema-only`联合选项。
 运行`gptransfer --full -- schema-only -d <database_name> ... ` 在目标集群上创建一个完整数据库，但是没有数据。
@@ -1370,7 +1367,7 @@ Resource Queues   | Yes       | No
 
 ### 锁定
 
-`-x`选项可以锁定表，将会放置一个排它锁到源表上直到复制和验证（如果需要）任务完成。
+`-x` 选项可以锁定表，将会放置一个排它锁到源表上直到复制和验证（如果需要）任务完成。
 
 ### 验证
 
@@ -1383,28 +1380,28 @@ Resource Queues   | Yes       | No
 
 ### 迁移失败
 
-一个表的失败不会终止`gptransfer`任务。当一个迁移失败，`gptransfer`会显示一个错误信息并把表明加到失败列表文件。
-在`gptransfer`的收尾任务中，`gptransfer`会打印出错信息并提供迁移失败的列表文件名，比如：
+一个表的失败不会终止 `gptransfer` 任务。当一个迁移失败，`gptransfer` 会显示一个错误信息并把表明加到失败列表文件。
+在 `gptransfer` 的收尾任务中，`gptransfer` 会打印出错信息并提供迁移失败的列表文件名，比如：
 
     [WARNING]:-Some tables failed to transfer. A list of these tables
     [WARNING]:-has been written to the file failed_transfer_tables_20140808_101813.txt
     [WARNING]:-This file can be used with the -f option to continue
 
-迁移失败的列表文件格式中带有`-f`选项，所以你可以重新启动一个`gptransfer`任务来重试失败的迁移。
+迁移失败的列表文件格式中带有 `-f` 选项，所以你可以重新启动一个 `gptransfer` 任务来重试失败的迁移。
 
 ### 最佳实践
 
-`gptransfer` 会创建一个可以高速迁移海量数据的配置文件。但是，对于小的或者空的表格，`gptransfer`的启动和清理都是非常耗时耗力的。最佳实践是主要对大数据表使用`gptransfer`，对小数据表采用其他的方法迁移。
+`gptransfer` 会创建一个可以高速迁移海量数据的配置文件。但是，对于小的或者空的表格，`gptransfer` 的启动和清理都是非常耗时耗力的。最佳实践是主要对大数据表使用`gptransfer`，对小数据表采用其他的方法迁移。
 
-1. 在你开始迁移数据之前，将Schema从源集群复制到目标集群。不要使用`gptransfer`的`--full –schema-only`选项。这里是一些用于复制Schema的选项：
+1. 在你开始迁移数据之前，将Schema从源集群复制到目标集群。不要使用 `gptransfer` 的 `--full –schema-only` 选项。这里是一些用于复制Schema的选项：
     * 使用`gpsd`（Greenplum Statistics Dump）辅助工具。该方法包含统计信息，所以在目标集群上创建Schema周要运行`ANALYZE`操作。
 	* 使用PostgreSQL的`pg_dump`或`pg_dumpall`工具并带上`–schema-only`选项。
 	* DDL脚本，或者任何其他可以在目标数据库上重新创建Schema的方法。
 2. 使用你自己的标准将非空的数据表划分为大的和小的组，例如，你可以把超过1百万行的表或者元数据体积大于1GB的表视为大表。
-3. 使用SQL的`COPY`命令来迁移小的表。这节省了使用`gptransfer`工具每次处理小数据表时的启动和终止时时间消耗。
+3. 使用SQL的 `COPY` 命令来迁移小的表。这节省了使用 `gptransfer` 工具每次处理小数据表时的启动和终止时时间消耗。
     * 可选项，可以写一个或者利用现有的Shell脚本来循环调用`COPY`命令复制一组数据表
-4. 通过`gptransfer`来并行迁移大数据表。
-    * 最好是向相同大小或者更大的集群迁移数据，这样`gptransfer`可以运行在快速模式。
+4. 通过 `gptransfer` 来并行迁移大数据表。
+    * 最好是向相同大小或者更大的集群迁移数据，这样 `gptransfer` 可以运行在快速模式。
 	* 如果存在索引，在开始迁移之前先删掉索引。
 	* 使用`gptransfer`的表（`-t`）或文件（`-f`）选项来执行表的并行迁移。不要使用完整模式运行 `gptransfer`；Schema和小表已经事先迁移了。
 	* 在迁移之前可以先执行`gptransfer`的试运行，这可以保障表迁移的成功性。你可以通过`--batch-size`和`--sub-batch-size`选项来做实验得到最大并行度，以确定每次运行`gptransfer`时表的合理批处理大小。
@@ -1420,7 +1417,7 @@ Resource Queues   | Yes       | No
 
 ## <span id='安全'>第八章 安全</span>
 
-本章给出基本安全最佳实践，Pivotal建议你需要遵守这些安全实践来保障系统安全。
+本章给出基本安全的最佳实践，Pivotal建议你遵守这些安全实践来保障系统安全。
 
 ### 安全最佳实践
 
@@ -1441,8 +1438,8 @@ Resource Queues   | Yes       | No
 
 下面给出一些可以用来检测密码强度的密码破解软件：
 
-* John The Ripper：一个快速的、弹性的密码破解程序。它支持使用多个单词表进行暴力密码破解。在线地址：http://www.openwall.com/john/。
-* Crack：可能是最著名的密码破解软件，破解速度很快，但是不如John The Ripper易用。在线地址：http://www.crypticide.com/alecm/security/crack/c50-faq.html。
+* `John The Ripper`：一个快速的、弹性的密码破解程序。它支持使用多个单词表进行暴力密码破解。在线地址：http://www.openwall.com/john/。
+* `Crack`：可能是最著名的密码破解软件，破解速度很快，但是不如John The Ripper易用。在线地址：http://www.crypticide.com/alecm/security/crack/c50-faq.html。
 
 整个系统的安全建立在根密码的强度上。该密码至少要12个字符并且包含大小写、特殊字符和数字，不能基于字典单词。
 
@@ -1536,10 +1533,10 @@ PAM的`pam_tally2`模块提供了在多次登陆失败重试后锁定用户账�
 
 加密可以在以下方式来保护Greenplum数据库系统中的数据：
 
-* 客户端和主服务器之间的通讯可以用SSL加密。可以通过设置`ssl`服务器配置参数为`on`并编辑`pg_hba.conf`文件来启动。如何在Greenplum数据库中启动SSL，详情可参见《Greenplum数据管理指南》中的“加密客户端/服务器连接”章节。
-* Greenplum数据库4.2.1及更高版本支持在Greenplum并行文件分发服务器（`gpfdist`）和段服务器之间的数据交换中进行SSL加密。详情参见：["加密gpfdist连接"](#加密gpfdist连接)章节
+* 客户端和主服务器之间的通讯可以用SSL加密。可以通过设置 `ssl` 服务器配置参数为 `on` 并编辑 `pg_hba.conf` 文件来启动。如何在Greenplum数据库中启动SSL，详情可参见《Greenplum数据管理指南》中的“加密客户端/服务器连接”章节。
+* Greenplum数据库4.2.1及更高版本支持在Greenplum并行文件分发服务器（`gpfdist`）和段服务器（Segment）之间的数据交换中进行SSL加密。详情参见：["加密gpfdist连接"](#加密gpfdist连接)章节
 * Greenplum数据库集群主机之间的网络连接可以使用IPsec加密。在集群中的每对主机之间都启动一个认证的、加密的VPN网络。详情可参见《Greenplum数据管理指南》中的“为Greenplum数据库配置IPsec”章节。
-* 其余情况可以采用`pgcrypto`包的加密/解密函数来保护数据。列级的加密可以保护敏感信息，比如密码、社保号、或信用卡号。用例可参见：["使用PGP加密表中数据"](#使用PGP加密表中数据)章节。
+* 其余情况可以采用 `pgcrypto` 包的加密/解密函数来保护数据。列级的加密可以保护敏感信息，比如密码、社保号、或信用卡号。用例可参见：["使用PGP加密表中数据"](#使用PGP加密表中数据)章节。
 
 ### 最佳实践
 
@@ -1576,45 +1573,37 @@ pgcrypto支持对称和非对称的PGP加密。对称加密中加密和解密使
 在你实施数据库内加密之际，先考虑以下PGP的限制：
 * 不支持签名。这也意味着没法检查加密子键是否属于主键。
 * 不支持加密秘钥作为主键。一般不建议采用该实践，所以该限制也不是个问题。
-* 不支持多个子键。这看起来像个问题，因为这是个常见实践。换句话说，你不应该在`pgcrypto`中使用你常用的GPG/PGP，而是创建新的，因为使用场景非常不一样。
+* 不支持多个子键。这看起来像个问题，因为这是个常见实践。换句话说，你不应该在 `pgcrypto` 中使用你常用的GPG/PGP，而是创建新的，因为使用场景非常不一样。
 
 缺省Greenplum数据库编译的时候带有zlib库，它支持PGP加密功能在加密之前先压缩数据。如果编译时候带有OpenSSL，则可以使用更多算法。
 
 因为pgcrypto函数运行在数据库服务器内，数据和密码在pgcrypto和客户端应用之间是明文传递的。为了最大化安全，你需要用本地连接或者SSL连接并充分信任系统和数据库管理员。
 
-Greenplum数据库中缺省没有安装pgcrypto包。你需要从[Pivotal Network](https://network.pivotal.io/)下载pgcrypto包并使用Greenplum包管理器(`gppkg`)在集群上安装`pgcrypto`包。
+Greenplum数据库中缺省没有安装pgcrypto包。你需要从[Pivotal Network](https://network.pivotal.io/)下载pgcrypto包并使用Greenplum包管理器(`gppkg`)在集群上安装 `pgcrypto` 包。
 
 pgcrypto会根据找到的PostgreSQL主配置脚本来配置自己。
 
-如果被编译时候带有`zlib`，pgcrypto加密功能可以在加密之前压缩数据。
+如果被编译时候带有 `zlib`，pgcrypto加密功能可以在加密之前压缩数据。
 
 你可以让pgcrypto支持联邦信息处理标准(FIPS) 140-2加密认证方法。FIPF 140-2要求pgcrypto v1.2版。Greenplum数据库`pgcrypto.fips`服务器配置参数控制着在pgcrypto中支持FIPS 140-2。详情可参见《Greenplum参照指南》中的“服务器配置参数”章节。
 
 pgcrypto拥有从基本到高级内置函数等多个加密级别。下表给出了所支持的加密算法。
 
-Table 1：pgcrypto所支持的加密函数
+Table 1：`pgcrypto` 所支持的加密函数
 
 Value Functionality 	| Built-in  | With OpenSSL  | OpenSSL with FIPS 140-2
 ------------------------|-----------|---------------|--------------------------
 MD5						| yes		| yes			| no
-------------------------|-----------|---------------|--------------------------
 SHA1					| yes		| yes			| no
-------------------------|-----------|---------------|--------------------------
-SHA224/256/384/512		| yes		| yes[^1]		| yes
-------------------------|-----------|---------------|--------------------------
-Other digest algorithms	| no		| yes[^2]		| no
-------------------------|-----------|---------------|--------------------------
+SHA224/256/384/512		| yes		| yes [^1]		| yes
+Other digest algorithms	| no		| yes [^2]		| no
 Blowfish				| yes		| yes			| no
-------------------------|-----------|---------------|--------------------------
-AES						| yes		| yes[^3]		| yes
-------------------------|-----------|---------------|--------------------------
-DES/3DES/CAST5			| no		| yes			| yes[^4]
-------------------------|-----------|---------------|--------------------------
+AES						| yes		| yes [^3]		| yes
+DES/3DES/CAST5			| no		| yes			| yes [^4]
 Raw Encryption			| yes		| yes			| yes
-------------------------|-----------|---------------|--------------------------
 PGP Symmetric-Key		| yes		| yes			| yes
-------------------------|-----------|---------------|--------------------------
 PGP Public Key			| yes		| yes			| yes
+
 
 [^1]: OpenSSL在v0.9.8版加入了SHA2算法。对于老版本，pgcrypto使用内置代码。
 [^2]: OpenSSL所支持的摘要算法会被自动获得，但是不包括ciphers，这个需要显式支持。
@@ -1625,7 +1614,7 @@ PGP Public Key			| yes		| yes			| yes
 
 要在Greenplum数据库中使用PGP非对称加密，你必须首先创建公钥和私钥并安装它们。
 
-本节假设你已经在一台Linux机器上安装了Greenplum数据库和GNU Privacy Guard(`gpg`)命令行工具。Pivotal建议使用最新版的GPG来创建秘钥。可从[https://www.gnupg.org/ download/](https://www.gnupg.org/ download/)下载并安装GPG。在GnuPG的官方网站你可以找到适用于主流Linux发布版、Windows以及Mac OS X的安装程序。
+本节假设你已经在一台Linux机器上安装了Greenplum数据库和GNU Privacy Guard (`gpg`)命令行工具。Pivotal建议使用最新版的GPG来创建秘钥。可从 [https://www.gnupg.org/download/](https://www.gnupg.org/download/) 下载并安装GPG。在GnuPG的官方网站你可以找到适用于主流Linux发布版、Windows以及Mac OS X的安装程序。
 
 1. 以root身份运行以下命令并从菜单中选择选项 __1__：
 
@@ -1712,7 +1701,7 @@ PGP Public Key			| yes		| yes			| yes
 	uid                  John Doe <jdoe@email.com>
 	ssb   2048R/4FD2EFBB 2015-01-13
 	```
-	2027CC30 是公钥，会被用来加密数据库中的数据。4FD2EFBB 是私钥，用来解密数据。
+	_2027CC30_ 是公钥，会被用来加密数据库中的数据。_4FD2EFBB_ 是私钥，用来解密数据。
 
 4. 使用以下命令导出秘钥：
 
@@ -1720,13 +1709,13 @@ PGP Public Key			| yes		| yes			| yes
 	# gpg -a --export 4FD2EFBB > public.key
 	# gpg -a --export-secret-keys 2027CC30 > secret.key
 	```
-关于PGP加密函数的更多详情，可参照[pgcrypto的文档](http://www.postgresql.org/docs/8.3/static/pgcrypto.html)。
+关于PGP加密函数的更多详情，可参照 [pgcrypto的文档](http://www.postgresql.org/docs/8.3/static/pgcrypto.html)。
 
 ### <span id='使用PGP加密表中数据'>使用PGP加密表中数据</span>
 
 本节展示如何使用你生成的PGP秘钥加密已经插入列中的数据。
 
-1. 复制`public.key`文件中的内容并拷贝到剪切板：
+1. 复制 `public.key` 文件中的内容并拷贝到剪切板：
 
 	```sh
 	# cat public.key
@@ -1761,7 +1750,7 @@ PGP Public Key			| yes		| yes			| yes
 	=XZ8J
 	-----END PGP PUBLIC KEY BLOCK-----
 	```
-2. 创建一个叫`userssn`的表并插入一些敏感数据，本例子中为Bob和Alice的社保号。将public.key中内容复制到“dearmor(”之后。
+2. 创建一个叫 `userssn` 的表并插入一些敏感数据，本例子中为Bob和Alice的社保号。将public.key中内容复制到“dearmor(”之后。
 
 	```sql
 	CREATE TABLE userssn( ssn_id SERIAL PRIMARY KEY,
@@ -1901,7 +1890,7 @@ PGP Public Key			| yes		| yes			| yes
 	pgp_key_id | 9D4D255F4FD2EFBB
 	```
 
-	结果显示被用来加密`ssn`列的PGP key ID是9D4D255F4FD2EFBB。当一个新的秘钥被创建时建议执行这一步操作，然后把ID存储起来用于追溯。
+	结果显示被用来加密 `ssn` 列的 PGP key ID 是 _9D4D255F4FD2EFBB_。当一个新的秘钥被创建时建议执行这一步操作，然后把ID存储起来用于追溯。
 
 	你可以使用该秘钥来查看那个密钥对被用来加密数据：
 
@@ -1993,16 +1982,17 @@ PGP Public Key			| yes		| yes			| yes
 
 ### <span id='加密gpfdist连接'>加密gpfdist连接</span>
 
-`gpfdists`协议是`gpfdist`的安全版本，可以安全地鉴别文件服务器和Greenplum数据库，并且加密二者之间的通讯。使用`gpfdists`可以抵抗窃听和中间人攻击。
+`gpfdists` 协议是 `gpfdist` 的安全版本，可以安全地鉴别文件服务器和Greenplum数据库，并且加密二者之间的通讯。使用 `gpfdists` 可以抵抗窃听和中间人攻击。
 
-`gpfdists`协议实现了客户端/服务器的SSL安全，需要注意以下特性：
+`gpfdists` 协议实现了客户端/服务器的SSL安全，需要注意以下特性：
+
 * 需要客户端证书。
 * 不支持多语言证书。
 * 比支持证书撤销列表（CRL）。
-* TLSv1协议和`TLS_RSA_WITH_AES_128_CBC_SHA`加密算法一起使用。这些SSL参数不能改变。
+* TLSv1协议和 `TLS_RSA_WITH_AES_128_CBC_SHA` 加密算法一起使用。这些SSL参数不能改变。
 * 支持SSL重新协商。
 * SSL忽略主机不匹配参数被设置为FALSE。
-* 带有口令的私钥不能用于`gpfdist`文件服务器（server.key）和Greenplum数据库（client.key）。
+* 带有口令的私钥不能用于 `gpfdist` 文件服务器（server.key）和Greenplum数据库（client.key）。
 * 为所使用的操作系统发布适合的证书是用户的责任。一般来说，支持将证书转换为所需格式，比如使用[SSL转换器](https://www.sslshopper.com/ssl-converter.html)。
 
 一个`gpfdist`服务器启动时带有`--ssl`选项，则只能和`gpfdists`协议通讯。如果一个`gpfdist`服务器启动时没带有`--ssl`选项，则只能和`gpfdist`协议通讯。关于`gpfdist`的更多详情，可参考《Greenplum数据管理指南》。
@@ -2011,13 +2001,14 @@ PGP Public Key			| yes		| yes			| yes
 * 运行带有`--ssl`选项的`gpfdist`并且在`CREATE EXTERNAL TABLE`语句的`LOCATION`子句中使用`gpfdist`。
 * 使用带有SSH选项设置为TRUE的YAML控制文件，并启动`gpload`。`gpload`启动带有`--ssl`选项的`gpfdist`，然后使用`gpfdists`协议。
 
-当时用gpfdists时，如下客户端证书必须放置在每台段服务器的`$PGDATA/gpfdists`目录：
+当时用gpfdists时，如下客户端证书必须放置在每台段服务器（Segment）的`$PGDATA/gpfdists`目录：
+
 * 客户端证书文件，`client.crt`
 * 客户端私钥文件，`client.key`
 * 客户端证书文件，`client.crt`
 * 可信证书中心，`root.crt`
 
-	主要： 不要用口令保护私钥。服务器不会为私钥提示口令，如果需要，加载数据就会失败并报错。
+  主要： 不要用口令保护私钥。服务器不会为私钥提示口令，如果需要，加载数据就会失败并报错。
 
 当使用带SSL的gpload时，你需要在YAML控制文件中写明服务器的位置。当使用带有SSL的gpfdist时，你需要通过--ssl选项指定服务器证书的位置。
 
@@ -2033,9 +2024,9 @@ PGP Public Key			| yes		| yes			| yes
 	```
 ## 第十章 访问基于kerberos的Hadoop集群
 
-利用外部表和`gphdfs`协议，Greenplum数据库可以从Hadoop文件系统(HDFS)中读取和写入文件。Greenplum段服务器可以从HDFS中并行的读写数据以获得较好性能。
+利用外部表和 `gphdfs` 协议，Greenplum数据库可以从Hadoop文件系统(HDFS)中读取和写入文件。Greenplum段服务器（Segment）可以从HDFS中并行的读写数据以获得较好性能。
 
-当一个Hadoop集群使用Kerberos进行了安全强化(即 "Kerberized")，Greenplum数据库必须先配置其gpadmin角色成为HDFS中外部表的拥有者，并可以通过Kerberos认证。下面将逐步介绍如何配置Greenplum数据库与Kerberos增强的HDFS协同工作，包括配置项的验证和故障排查。
+当一个Hadoop集群使用Kerberos进行了安全强化(即 "Kerberized")，Greenplum数据库必须先配置其gpadmin角色成为HDFS中外部表的拥有者，并可以通过Kerberos认证。下面将逐步介绍如何配置Greenplum数据库与Kerberized的HDFS协同工作，包括配置项的验证和故障排查。
 
 * [预备知识](#Prerequisites)
 * [配置Greenplum集群](#Configuring_the_Greenplum_Cluster)
@@ -2060,57 +2051,73 @@ Greenplum集群中所有主机都要安装Java JRE、Hadoop客户端文件和Ker
 
 1. 在所有Greenplum集群主机上安装 Java JRE 1.6及更高版本。
 
-Hadoop集群需要匹配的JRE版本才能运行。你可以在Hadoop节点上通过`java --version`命令来确认JRE版本。
+	Hadoop集群需要匹配的JRE版本才能运行。你可以在Hadoop节点上通过`java --version`命令来确认JRE版本。
 
 2. （可选）确认Java加密扩展(JCE)可用的。
 
-JCE库的缺省位置是`JAVA_HOME/lib/security`。如果安装了JDK，其缺省目录是`JAVA_HOME/jre/lib/security`。文件`local_policy.jar`和`local_policy.jar`应该存在于JCE目录中。
+	JCE库的缺省位置是`JAVA_HOME/lib/security`。如果安装了JDK，其缺省目录是`JAVA_HOME/jre/lib/security`。文件`local_policy.jar`和`local_policy.jar`应该存在于JCE目录中。
 
-Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需要，你可以从Kerberos服务器上将JCE文件拷贝到Greenplum集群中。
+	Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需要，你可以从Kerberos服务器上将JCE文件拷贝到Greenplum集群中。
 
 3. 将对应JRE位置的`JAVA_HOME`环境变量加入到`gpadmin`账号的`.bashrc`文件或者`.bash_profile`中，例如：
 
+	```sh
 	export JAVA_HOME=/usr/java/default
+	```
 
 4. Source`.bashrc`文件或者`.bash_profile`文件使上述修改能够生效，例如：
 
+	```sh
 	$ source ~/.bashrc
+	```
 
 5. 在所有集群主机上安装Kerberos客户端工具。在安装之前要确保其库版本与KDC服务器上是匹配的。
 
-例如，用下面的命令在Red Hat或CentOS Linux上安装Kerberos客户端文件：
+	例如，用下面的命令在Red Hat或CentOS Linux上安装Kerberos客户端文件：
 
+	```sh
 	$ sudo yum install krb5-libs krb5-workstation
+	```
 
-可以用`kinit`命令来确认Kerberos客户端已经安装和配置成功了。
+	可以用`kinit`命令来确认Kerberos客户端已经安装和配置成功了。
 
 6. 在Greenplum集群所有主机上安装Hadoop客户端文件。可以参考你的Hadoop发布版文档中的说明。
 
 7. 在Greenplum数据库服务器上设为Hadoop配置参数。`gp_hadoop_target_version`参数指定了Hadoop集群的版本，可从《Greenplum数据库发行说明》查找你Hadoop发布版对应的版本值。`gp_hadoop_home`参数指定了Hadoop安装目录。
 
+	```sh
 	$ gpconfig -c gp_hadoop_target_version -v "hdp2"
 	$ gpconfig -c gp_hadoop_home -v "/usr/lib/hadoop"
+	```
 
-详情可参见《Greenplum数据库参考指南》。
+	详情可参见《Greenplum数据库参考指南》。
 
 8. 为Greenplum数据库的主服务器和段服务器重新加载更新过的`postgresql.conf`文件：
 
+	```sh
 	gpstop -u
+	```
 
-你可以用下面的命令来确认这些改变：
+   你可以用下面的命令来确认这些改变：
 
+	```sh
 	$ gpconfig -s gp_hadoop_target_version
 	$ gpconfig -s gp_hadoop_home
+	```
 
 9. 将Greenplum数据库gphdfs协议权限授予拥有HDFS外部表的角色，包括`gpadmin`和其他超级用户角色。赋予`SELECT`权限使之可以在HDFS中创建可读外部表。赋予`INSERT`权限使之可以在HDFS中创建可写外部表。
 
+	```sql
 	#= GRANT SELECT ON PROTOCOL gphdfs TO gpadmin;
 	#= GRANT INSERT ON PROTOCOL gphdfs TO gpadmin;
+	```
 
 10. 将Greenplum数据库外部表权限赋予外部表所有者角色：
 
+	```sql
 	ALTER ROLE HDFS_USER CREATEEXTTABLE (type='readable'); 
 	ALTER ROLE HDFS_USER CREATEEXTTABLE (type='writable');
+	```
 
 注意：最佳实践——至少每年要检查包括gphdfs外部表权限等数据库权限。
 
@@ -2120,24 +2127,30 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 
 2. 使用`kadmin.local`命令为`gpadmin`用户创建一个新的用户主体(Principal)
 
+	```sh
 	# kadmin.local -q "addprinc -randkey gpadmin@LOCAL.DOMAIN"
+	```
 
 3. 使用`kadmin.local`命令为Greenplum集群中每个主机生成一个Kerberos服务主体。服务主体的格式是：_name/role@REALM_，此处：
+
 	* _name_ 是gphdfs服务用户名字。本例子中使用`gphdfs`。
 	* _role_ 一个Greenplum集群主机可以被DNS解析的主机名（是`hostname -f`命令的输出）。
 	* _REALM_ 是Kerberos域（realm），比如`LOCAL.DOMAIN`。
 
-例如，下面命令添加了四个Greenplum主机（mdw.example.com，smdw.example.com，sdw1.example.com和sdw2.example.com）的服务主体：
+	例如，下面命令为四个Greenplum主机（mdw.example.com，smdw.example.com，sdw1.example.com和sdw2.example.com）添加了服务主体：
 
+	```sh
 	# kadmin.local -q "addprinc -randkey gphdfs/mdw.example.com@LOCAL.DOMAIN"
 	# kadmin.local -q "addprinc -randkey gphdfs/smdw.example.com@LOCAL.DOMAIN"
 	# kadmin.local -q "addprinc -randkey gphdfs/sdw1.example.com@LOCAL.DOMAIN"
 	# kadmin.local -q "addprinc -randkey gphdfs/sdw2.example.com@LOCAL.DOMAIN"
+	```
 
-为每个Greenplum集群主机创建一个主体。使用相同的主体名称和域，以替代每个主机的完整限定域名(FQDN)。
+	为每个Greenplum集群主机创建一个主体。使用相同的主体名称和域，以替代每个主机的完整限定域名(FQDN)。
 
 4. 为你创建的每个主体(`gpadmin`和每一个`gphdfs`服务主体)生成一个密钥表文件(keytab)。你可以将密钥表文件保存到任意方便的位置（本例子中使用目录`/etc/security/keytabs`）。 你可以用下面步骤将服务主体的密钥表文件部署到他们各自的Greenplum主机上：
 
+	```sh
 	# kadmin.local -q "xst -k /etc/security/keytabs/gphdfs.service.keytab
 	gpadmin@LOCAL.DOMAIN"
 	# kadmin.local -q "xst -k /etc/security/keytabs/mdw.service.keytab gpadmin/mdw
@@ -2149,34 +2162,45 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 	# kadmin.local -q "xst -k /etc/security/keytabs/sdw2.service.keytab gpadmin/sdw2
 	gphdfs/sdw2.example.com@LOCAL.DOMAIN"
 	# kadmin.local -q "listprincs"
+	```
 
 5. 如下修改`gphdfs.service.keytab`的所有权和访问权限：
 
+	```sh
 	# chown gpadmin:gpadmin /etc/security/keytabs/gphdfs.service.keytab
 	# chmod 440 /etc/security/keytabs/gphdfs.service.keytab
+	```
 
 6. 将`gpadmin@LOCAL.DOMAIN`的秘钥文件拷贝到Greenplum主服务器上去：
 
+	```sh
 	# scp /etc/security/keytabs/gphdfs.service.keytab mdw_fqdn:/home/gpadmin/gphdfs.service.keytab
+	```
 
 7. 将每个服务主体的秘钥文件拷贝到各自Greenplum主机上去：
 
+	```sh
 	# scp /etc/security/keytabs/mdw.service.keytab mdw_fqdn:/home/gpadmin/mdw.service.keytab
 	# scp /etc/security/keytabs/smdw.service.keytab smdw_fqdn:/home/gpadmin/smdw.service.keytab
 	# scp /etc/security/keytabs/sdw1.service.keytab sdw1_fqdn:/home/gpadmin/sdw1.service.keytab
 	# scp /etc/security/keytabs/sdw2.service.keytab sdw2_fqdn:/home/gpadmin/sdw2.service.keytab
-	￼
+	```￼
+
+
 ### <span id='Configuring_gphdfs_for_Kerberos'>配置基于Kerberos的gphdfs</span>
 
-1. 在Greenplum集群所有主机上编辑Hadoop客户端配置文件`core-site.xml`。 将`hadoop.security.authorization`属性设置为`true`以启动Hadoop服务级认证。例如：
+1. 在Greenplum集群所有主机上编辑Hadoop客户端配置文件 `core-site.xml`。 将 `hadoop.security.authorization` 属性设置为`true`以启动Hadoop服务级认证。例如：
 
+	```xml
 	<property>
 		<name>hadoop.security.authorization</name>
 		<value>true</value>
 	</property>
+	```
 
-2. 在Greenplum集群所有主机上编辑客户端配置文件`yarn-site.xml`。将资源管理器地址和YARN Kerberos服务主体。例如：
+2. 在Greenplum集群所有主机上编辑客户端配置文件 `yarn-site.xml`。将资源管理器地址和YARN Kerberos服务主体。例如：
 
+	```xml
 	<property>
 		<name>yarn.resourcemanager.address</name>
 		<value>hostname:8032</value>
@@ -2185,16 +2209,18 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 		<name>yarn.resourcemanager.principal</name>
 		<value>yarn/hostname@DOMAIN</value>
 	</property>
+	```
 
 3. 在Greenplum集群所有主机上编辑客户端配置文件`hdfs-site.xml`。需要设置标识主节点(NameNode)的Kerberos主体、Kerberos密码文件的位置，主体是用来：
 
-* `dfs.namenode.kerberos.principal` - gphdfs协议用于NameNode的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
-* `dfs.namenode.https.principal` - gphdfs协议用于NameNode的安全HTTP服务器的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
-* `com.emc.greenplum.gpdb.hdfsconnector.security.user.keytab.file` - 用于Kerberos HDFS服务的秘钥文件的路径，比如 `gpadmin@LOCAL.DOMAIN`。
-* `com.emc.greenplum.gpdb.hdfsconnector.security.user.name` - 主机的gphdfs服务主体，比如 `gphdfs/mdw.example.com@LOCAL.DOMAIN`。
+	* `dfs.namenode.kerberos.principal` - gphdfs协议用于NameNode的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
+	* `dfs.namenode.https.principal` - gphdfs协议用于NameNode的安全HTTP服务器的Kerberos主体名字，比如 `gpadmin@LOCAL.DOMAIN`。
+	* `com.emc.greenplum.gpdb.hdfsconnector.security.user.keytab.file` - 用于Kerberos HDFS服务的秘钥文件的路径，比如 `gpadmin@LOCAL.DOMAIN`。
+	* `com.emc.greenplum.gpdb.hdfsconnector.security.user.name` - 主机的gphdfs服务主体，比如 `gphdfs/mdw.example.com@LOCAL.DOMAIN`。
 
-举例：
+	例如：
 
+	```xml
 	<property>
 		<name>dfs.namenode.kerberos.principal</name>
 		<value>gphdfs/gpadmin@LOCAL.DOMAIN</value>
@@ -2211,12 +2237,16 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 		<name>com.emc.greenplum.gpdb.hdfsconnector.security.user.name</name>
 		<value>gpadmin/@LOCAL.DOMAIN</value>
 	</property>
+	```
+
 
 ### <span id='Testing_Greenplum_Database_Access_to_HDFS'>测试Greenplum数据库访问HDFS</span>
 
 确保可以在Greenplum集群的所有主机上通过Kerberos认证来访问HDFS。例如，通过下面的命令来列出一个HDFS目录：
 
-	hdfs dfs -ls hdfs://namenode:8020
+```sh
+hdfs dfs -ls hdfs://namenode:8020
+```
 
 #### 在HDFS中创建一个可读外部表
 
@@ -2224,24 +2254,33 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 
 1. 创建一个逗号分开的文本文件，`test1.txt`，文件内容如下：
 
+	```txt
 	25, Bill
 	19, Anne
 	32, Greg
 	27, Gloria
+	```
 
 2.  将该样本文件持久存储在HDFS中
 
+	```sh
 	hdfs dfs -put test1.txt hdfs://namenode:8020/tmp
+	```
 
 3. 登陆Greenplum数据库，并创建可以可读外部表指向Hadoop中的`test1.txt`：
 
+	```sql
 	CREATE EXTERNAL TABLE test_hdfs (age int, name text)
 	LOCATION('gphdfs://namenode:8020/tmp/test1.txt')
 	FORMAT 'text' (delimiter ',');
+	```
 
 4. 从外部表中读数据：
 
+	```sql
 	SELECT * FROM test_hdfs;
+	```
+
 
 #### 在HDFS中创建一个可写外部表
 
@@ -2250,49 +2289,64 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 
 1. 登陆Greenplum数据库，并创建可以可写外部表指向Hadoop中的一个文件：
 
+	```sql
 	CREATE WRITABLE EXTERNAL TABLE test_hdfs2 (LIKE test_hdfs)
 	LOCATION ('gphdfs://namenode:8020/tmp/test2.txt'
 	FORMAT 'text' (DELIMITER ',');
+	```
 
 2. 将数据加载入可写外部表：
 
+	```sql
 	INSERT INTO test_hdfs2
 	SELECT * FROM test_hdfs;
+	```
 
 3. 查看文件是否存在于HDFS中：
 
+	```sh
 	hdfs dfs -ls hdfs://namenode:8020/tmp/test2.txt
+	```
 
 4. 验证外部文件的内容
 
+	```sh
 	hdfs dfs -cat hdfs://namenode:8020/tmp/test2.txt
+	```
 
 
 ### <span id='Troubleshooting_HDFS_with_Kerberos'>带有Kerberos的HDFS故障排查</span>
 
 #### 强制添加Classpaths
 
-如果你在从`gphdfs`外部表中执行`SELECT`语句时候遇到"class not fund"的错误，可编辑`$GPHOME/lib/hadoop-env.sh`文件，将下面这些行添加到文件末尾，然后设置`JAVA_LIBRARY_PATH`。 在所有的集群主机上更新该脚本。
+如果你在从 `gphdfs` 外部表中执行 `SELECT` 语句时候遇到 \"class not fund\" 的错误，可编辑 `$GPHOME/lib/hadoop-env.sh` 文件，将下面这些行添加到文件末尾，然后设 `JAVA_LIBRARY_PATH`。 在所有的集群主机上更新该脚本。
 
-	if [ -d "/usr/hdp/current" ]; then
+```sh
+if [ -d "/usr/hdp/current" ]; then
 	for f in /usr/hdp/current/**/*.jar; do
 		CLASSPATH=${CLASSPATH}:$f;
 	done
-	fi
+fi
+```
+
 
 #### 启用Kerberos客户端Debug信息
 
 要查看Kerberos客户端的debug信息，可以在所有集群主机上编辑客户端Shell脚本`$GPHOME/lib/hadoop-env.sh`，将`HADOOP_OPTS`变量设置为：
 
-	export HADOOP_OPTS="-Djava.net.prefIPv4Stack=true -Dsun.security.krb5.debug=true ${HADOOP_OPTS}"
+```sh
+export HADOOP_OPTS="-Djava.net.prefIPv4Stack=true -Dsun.security.krb5.debug=true ${HADOOP_OPTS}"
+```
 
 #### 调整段主机上的JVM进程内存
 
-每个段服务器会启动一个JVM进程来读取或者写入HDFS上的一个外部表。要修改每个JVM进程所申请的内存数量，可以配置 `GP_JAVA_OPT`环境变量。
+每个段服务器（Segment）会启动一个JVM进程来读取或者写入HDFS上的一个外部表。要修改每个JVM进程所申请的内存数量，可以配置 `GP_JAVA_OPT` 环境变量。
 
 在所有集群主机上编辑客户端Shell脚本`$GPHOME/lib/hadoop-env.sh`， 比如：
 
-	export GP_JAVA_OPT=-Xmx1000m
+```sh
+export GP_JAVA_OPT=-Xmx1000m
+```
 
 #### 验证Kerberos安全设置
 
@@ -2301,32 +2355,42 @@ Greenplum集群和Kerberos服务器最好使用相同版本的JCE库。如果需
 * 如果AES256加密没有被禁用了，确保所有集群主机上安装了JCE的无限制权限策略文件("Unlimited Strength Jurisdiction Policy Files")。
 * 确信Kerberos秘钥文件中的所有加密类型都匹配`krb5.conf`文件中的定义。
 
-	cat /etc/krb5.conf | egrep supported_enctypes
+```sh
+cat /etc/krb5.conf | egrep supported_enctypes
+```
 
 #### 测试单个段服务器主机的连通性
 
 按照以下步骤来测试单个Greenplum主机能否读取HDFS数据。该测试方法通过命令行执行Greenplum的Java类`HDFSReader`，在数据库外辅助排查连通性问题。
 
-1. 讲一个样本文件保存如HDFS。
+1. 将一个样本文件保存如HDFS。
 
+	```sh
 	hdfs dfs -put test1.txt hdfs://namenode:8020/tmp
+	```
 
 2. 在待测试的段主机上创建一个环境脚本`env.sh`，如下所示：
 
+	```sh
 	export JAVA_HOME=/usr/java/default
 	export HADOOP_HOME=/usr/lib/hadoop
 	export GP_HADOOP_CON_VERSION=hdp2
 	export GP_HADOOP_CON_JARDIR=/usr/lib/hadoop
+	```
 
 3. 使用source命令加载所有的环境脚本：
 
+	```sh
 	source /usr/local/greenplum-db/greenplum_path.sh
 	source env.sh
 	source $GPHOME/lib/hadoop-env.sh
+	```
 
 4. 测试Greenplum的HDFS读取功能
 
+	```sh
 	java com.emc.greenplum.gpdb.hdfsconnector.HDFSReader 0 32 TEXT hdp2 gphdfs://namenode:8020/tmp/test1.txt
+	```
 
 ## 第十一章 SQL 查询调优
 
@@ -2338,7 +2402,7 @@ Greenplum数据库采用基于成本的优化器来评估执行查询的不同�
 
 ### 如何生成查询计划解释
 
-`EXPLAIN` 和 `EXPLAIN ANALYZE` 语句有助于改进查询性能。`EXPLAIN` 显示一个查询的执行计划以及估算的代价，但是不执行该查询。`EXPLAIN ANALYZE`除了显示执行计划外还会执行查询。`EXPLAIN ANALYZE` 会丢弃SELECT语句的输出，其他操作会被执行（例如INSERT，UPDATE和DELETE）。若需对DML语句使用`EXPLAIN ANALYZE`而不影响数据，可置`EXPLAIN ANALYZE` 于事务中（BEGIN; EXPLAIN ANALYZE ...; ROLLBACK;）。
+`EXPLAIN` 和 `EXPLAIN ANALYZE` 语句有助于改进查询性能。`EXPLAIN` 显示一个查询的执行计划以及估算的代价，但是不执行该查询。`EXPLAIN ANALYZE`除了显示执行计划外还会执行查询。`EXPLAIN ANALYZE` 会丢弃SELECT语句的输出，其他操作会被执行（例如INSERT，UPDATE和DELETE）。若需对DML语句使用 `EXPLAIN ANALYZE` 而不影响数据，可置 `EXPLAIN ANALYZE` 于事务中（`BEGIN; EXPLAIN ANALYZE ...; ROLLBACK;`）。
 
 `EXPLAIN ANALYZE` 除了执行查询、显示查询计划外，还显示如下信息：
 
@@ -2354,25 +2418,27 @@ Greenplum数据库采用基于成本的优化器来评估执行查询的不同�
 
 下面是一个简单查询的解释计划，这个查询的结果应为每个Segment上contributions表的行数。
 
-	gpacmin=# EXPLAIN SELECT gp_Segment_id, count(*)
-							FROM contributions
-							GROUP BY gp_Segment_id;
-							QUERY PLAN
-	--------------------------------------------------------------------------------
-	Gather Motion 2:1 (slice2; Segments: 2) (cost=0.00..4.44 rows=4 width=16)
-		-> HashAggregate (cost=0.00..3.38 rows=4 width=16)
-			Group By: contributions.gp_Segment_id
-			-> Redistribute Motion 2:2 (slice1; Segments: 2)
-					(cost=0.00..2.12 rows=4 width=8)
-				Hash Key: contributions.gp_Segment_id
-				-> Sequence (cost=0.00..1.09 rows=4 width=8)
-					-> Result (cost=10.00..100.00 rows=50 width=4)
-						-> Function Scan on gp_partition_expansion
-							(cost=10.00..100.00 rows=50 width=4)
-					-> Dynamic Table Scan on contributions (partIndex: 0)
-						(cost=0.00..0.03 rows=4 width=8)
-	Settings: optimizer=on
-	(10 rows)
+```sql
+gpacmin=# EXPLAIN SELECT gp_Segment_id, count(*)
+					FROM contributions
+					GROUP BY gp_Segment_id;
+					QUERY PLAN
+--------------------------------------------------------------------------------
+Gather Motion 2:1 (slice2; Segments: 2) (cost=0.00..4.44 rows=4 width=16)
+	-> HashAggregate (cost=0.00..3.38 rows=4 width=16)
+		Group By: contributions.gp_Segment_id
+		-> Redistribute Motion 2:2 (slice1; Segments: 2)
+				(cost=0.00..2.12 rows=4 width=8)
+			Hash Key: contributions.gp_Segment_id
+			-> Sequence (cost=0.00..1.09 rows=4 width=8)
+				-> Result (cost=10.00..100.00 rows=50 width=4)
+					-> Function Scan on gp_partition_expansion
+						(cost=10.00..100.00 rows=50 width=4)
+				-> Dynamic Table Scan on contributions (partIndex: 0)
+					(cost=0.00..0.03 rows=4 width=8)
+Settings: optimizer=on
+(10 rows)
+```
 
 此计划有7个节点 - Dynamic Table Scan, Function Scan, Result, Sequence, Redistribute Motion, HashAggregate 及最后的 Gather Motion。每个节点含有三个估计代价：代价（顺序读页数），行数和行的长度。
 
