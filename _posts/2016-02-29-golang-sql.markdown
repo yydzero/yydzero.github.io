@@ -512,7 +512,6 @@ cn.startup(o): 启动握手处理，直到出错，或者 connection ready for q
                     内部根据返回的类型的 oid 进行分别处理。
 
 
-
 ### Tips
 
 参见: http://go-database-sql.org/surprises.html
@@ -588,3 +587,51 @@ golang sql 包提供了简单的连接池功能. 使用时需要注意:
 * 不支持一个语句返回多个 ResultSet, 譬如一个 UDF 返回多个 result set.
 * 多语句支持
 * 不能并行处理事务内的语句,因为事务内的语句需要串行处理;  不在事务内的语句可能并行在不同的连接上执行.
+
+### Connection Pool
+
+sql package 有两种 conn 重用策略：一是 alwaysNewConn，总是使用新的连接，另一个是 cachedOrNewConn 返回缓冲的连接，如果没有缓存则创建
+新的连接，如果达到 MaxOpenConns 上限，则等待。
+
+连接池数据结构
+
+    // DB 是表示0个或者更多底层连接的连接池。可以被多个 goroutines 并发使用
+    //
+    // sql 包会自动创建并释放连接。如果数据库有连接状态，则这些状态只有在事务内可靠。一旦调用了 DB.Begin，返回的 Tx
+    // 将绑定到单个连接上。 提交或者回滚后，事务的连接返回到 DB 的空闲连接池中。
+
+    type DB struct {
+        driver driver.Driver
+        dsn    string
+
+        // numClosed is an atomic counter which represents a total number of
+        // closed connections. Stmt.openStmt checks it before cleaning closed
+        // connections in Stmt.css.
+        numClosed uint64
+
+        mu           sync.Mutex // protects following fields
+        freeConn     []*driverConn          // 空闲连接池
+        connRequests []chan connRequest     // 连接请求, 当不能使用连接池或者没有空闲连接时，添加一个新的连接请求
+        numOpen      int                    // number of opened and pending open connections
+        // Used to signal the need for new connections
+        // a goroutine running connectionOpener() reads on this chan and
+        // maybeOpenNewConnections sends on the chan (one send per needed connection)
+        // It is closed during db.Close(). The close tells the connectionOpener
+        // goroutine to exit.
+        openerCh    chan struct{}
+        closed      bool
+        dep         map[finalCloser]depSet
+        lastPut     map[*driverConn]string // stacktrace of last conn's put; debug only
+        maxIdle     int                    // zero means defaultMaxIdleConns; negative means 0
+        maxOpen     int                    // <= 0 means unlimited
+        maxLifetime time.Duration          // maximum amount of time a connection may be reused
+        cleanerCh   chan struct{}
+    }
+
+返回连接的方法：
+
+    // conn returns a newly-opened or cached *driverConn
+    func (db *DB) conn(strategy connReuseStrategy) (*driverConn, err) {
+    }
+
+#### conn 什么时候进入 cache pool
