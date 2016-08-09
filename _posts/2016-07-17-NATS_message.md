@@ -1,0 +1,5 @@
+## NATS messaging system
+* NATS is an open-source, cloud-native, light-weighted message distribution system. NATS supports 3 message distribution model, including publish/subscribe model, Request/Reply model and Queueing model, among which publish/subscribe is the most popular one.
+* The archetecture of the NATS is: there is a server process running as a daemon called gnatsd, and several clients connect to the server as either a publisher or subscriber. All publishers and subscribers communicate through a concept called "subject", that is to say, subscribers are waiting on messages of a subject, and publisher would publish messages on a specific subject.
+* clients are connected to server by TCP connections, and the there is simple text-based protocol for communication.
+* server can be configured to be cluster mode to enable HA feature, and correspondingly, clients should be switched to cluster mode as well.
