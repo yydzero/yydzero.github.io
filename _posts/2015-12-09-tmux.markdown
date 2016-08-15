@@ -185,7 +185,27 @@ For example, we can use "w" to jump to the next word and "b" to jump back one wo
     unbind Down
     bind Down last-window \; swap-pane -s tmp.1 \; kill-window -t tmp
 
+#### mouse mode
+
+    [gpadmin@mdw ~]$ cat ~/.tmux.conf
+    set -g mode-mouse on
+    set -g mouse-select-pane on
+    set -g mouse-select-window on
+
+    bind m \
+    	set -g mode-mouse on \;\
+    	set -g mouse-select-pane on \;\
+    	set -g mouse-select-window on \;\
+    	display 'Mouse: ON'
+
+    bind M \
+    	set -g mode-mouse off \;\
+    	set -g mouse-select-pane off \;\
+    	set -g mouse-select-window off \;\
+    	display 'Mouse: OFF'
+
 #### Resources:
 
+* [tmux/screen cheat sheet](http://www.dayid.org/comp/tm.html)
 * [tmux: Productive Mouse-Free Development](http://pragprog.com/book/bhtmux/tmux)
 * [How to reorder windows](http://superuser.com/questions/343572/tmux-how-do-i-reorder-my-windows)

@@ -86,6 +86,32 @@ HEAP profile 可以用于:
 
 pprof 工具提供了可视化方法,可以使用 web 命令保存 profile 数据到 svg 图形中.
 
+## 使用 pprof 的例子
+
+    import _ "net/http/pprof"
+
+    func main() {
+
+        go func() {
+        	log.Println(http.ListenAndServe("*:6060", nil))
+        }()
+
+    }
+
+然后可以访问profile信息：
+
+* heap profile: `go tool pprof http://localhost:6060/debug/pprof/heap`
+* 30 seconds cpu profile: `go tool pprof http://localhost:6060/debug/pprof/profile`
+* goroutine blocking profile: `go tool pprof http://localhost:6060/debug/pprof/block`
+* collect 5-second execution trace: `wget http://localhost:6060/debug/pprof/trace?seconds=5`
+* view all available profiles: `http://localhost:6060/debug/pprof/`
+
+例如：
+
+* http://<hostIP>:6060/debug/pprof/ 显示pprof 的主页
+* http://s115:6060/debug/pprof/goroutine?debug=1 显示 goroutine 的调用栈
+* http://s115:6060/debug/pprof/heap?debug=1: 查看heap
+
 
 ## 参考
 
