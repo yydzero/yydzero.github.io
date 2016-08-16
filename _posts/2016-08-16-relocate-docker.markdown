@@ -37,9 +37,8 @@ If you want to use gdb in Docker, you may run into a "ptrace: Operation not perm
 ```sh
 docker run -t -v <absolute path to gpdb4 directory>:/home/gpadmin/gpdb4 --privileged --security-opt seccomp:unconfined -i pivotaldata/centos511-java7-gpdb-dev-image bash
 ```
-See [this post](https://forums.docker.com/t/boot2docker-mac-os-x-1-10-failing-ptrace-gdb/6005). I have also updated the mounted docker guide. The simplest way to resolve is to destroy your gpdb4 container/image and redo the guide from the start, although you could commit your gpdb4 container to an image and use docker run on that...
-
-    -- from Amil Khanzada <akhanzada@pivotal.io>
+> See [this post](https://forums.docker.com/t/boot2docker-mac-os-x-1-10-failing-ptrace-gdb/6005). I have also updated the mounted docker guide. The simplest way to resolve is to destroy your gpdb4 container/image and redo the guide from the start, although you could commit your gpdb4 container to an image and use docker run on that...
+>   -- from Amil Khanzada <akhanzada@pivotal.io>
 
 We perform following commands to verify it:
 
