@@ -7,18 +7,17 @@ published:	false
 
 # Greenplum 数据库最佳实践
 
-本文档基于[Greenplum数据库最佳实践官方文档](http://gpdb.docs.pivotal.io/4380/pdf/GPDB43BestPracticesA03.pdf)
-译者姚延栋、刘奎恩。转载请注明出处。
+作者姚延栋、刘奎恩。
 
 ## 第一章
 
 ### 介绍
 
-本文介绍Pivotal Greenplum Database数据库（以下简称：Greenplum数据库，或GPDB）的最佳实践。
+本书介绍 Pivotal Greenplum 数据库（以下简称：Greenplum 数据库，或GPDB）的最佳实践。
 
-最佳实践是指能持续产生比其他方法更好结果的方法或者技术，它来自于实战经验，并被证实了遵循这些方法可以获得可靠的预期结果。本最佳实践旨在通过利用所有可能的知识和技术为正确使用GPDB提供有效参考。
+最佳实践是能持续产生比其他方法更好结果的方法或者技术，它来自于实战经验，并被证实了遵循这些方法可以获得可靠的预期结果。本最佳实践旨在通过利用所有可能的知识和技术为正确使用GPDB提供有效参考。
 
-本文不是在教您如何使用Greenplum数据库的功能，而是帮助您在设计、实现和使用Greenplum数据库时了解需要遵循哪些最佳实践。关于如何使用和实现具体的Greenplum数据库特性，请参考 <http://gpdb.docs.pivotal.io> 上的Greenplum数据库帮助文档以及 <http://greenplum.org> 上的Sandbox和实践指南。
+本书不是在教您如何使用Greenplum数据库的功能，而是帮助您在设计、实现和使用Greenplum数据库时了解需要遵循哪些最佳实践。关于如何使用和实现具体的Greenplum数据库特性，请参考 <http://gpdb.docs.pivotal.io> 上的Greenplum数据库帮助文档以及 <http://greenplum.org> 上的Sandbox和实践指南。
 
 本文目的不是要涵盖整个产品或者产品特性，而是概述**GPDB实践中最重要的因素**。本文不涉及依赖于GPDB具体特性的边缘用例，后者需要精通数据库特性和您的环境，包括SQL访问、查询执行、并发、负载和其他因素。
 
