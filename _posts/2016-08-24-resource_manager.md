@@ -32,3 +32,9 @@
 		* cooperative caching
 		* full utilization of spare resources(RAM, or CPUs on SMP machine, etc) of sequential tasks
 	* scalability means that performance should not be worse when scaling up;
+	
+## Yarn
+* CapacityScheduler and FairScheduler are same as Resource Plan of Oracle resource manager, and CapacityScheduler is the default one;
+* The resource calculation of a scheduler is pluggable, the definition of scheduler only constains percentage, it does not specify which kind of resource is scheduled, the resource can be specified by resource calculator, for example org.apache.hadoop.yarn.util.resource.DefaultResourseCalculator is for memory, and org.apache.hadoop.yarn.util.resource.DominantResourceCalculator is for combination of memory and CPU;
+* Each application would also be mapped to a queue first in Yarn, and the resource allocation is defined on queue; queues are divided into different levels, and the queues of the first level are children of a queue called root; thus, the queues are organized into a hiearchical structure;
+* FairScheduler can be roughly treated as a special CapacityScheduler, which uses fair scheduling algorithm; FairScheduler also has hiearchical queues and pluggable resource calculation;
