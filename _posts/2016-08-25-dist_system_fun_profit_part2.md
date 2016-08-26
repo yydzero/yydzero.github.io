@@ -14,4 +14,18 @@
 			* update each element in the vector to be max(local, received)
 			* increment the logical clock value representing the current node in the vector
 * For synchronous system, **failure detection** is easy, since there is a upper bound for the message delay; For asynchronous system, it is hard to tell whether the no-response is caused by network partition or node failure; Ideally, we'd prefer the failure detector to be able to adjust to changing network conditions and to avoid hardcoding timeout values into it. For example, Cassandra uses an accrual failure detector, which is a failure detector that outputs a suspicion level (a value between 0 and 1) rather than a binary "up" or "down" judgment. This allows the application using the failure detector to make its own decisions about the tradeoff between accurate detection and early detection.
-
+* **Consensus problem**: Several processes (or computers) achieve consensus if they all agree on some value. Replicated systems that maintain single copy consistency need to solve the consensus problem in some way.
+* The **replication algorithms** that maintain single-copy consistency include:
+	* 1n messages (asynchronous primary/backup)
+	* 2n messages (synchronous primary/backup)
+	* 4n messages (2-phase commit, Multi-Paxos)
+	* 6n messages (3-phase commit, Paxos with repeated leader election)
+* Primary/backup replication:
+	* There are two variants:
+		* asynchronous primary/backup replication: WAL replication of PostgreSQL
+		* synchronous primary/backup replication: Filerep of GPDB
+	* it is worth noting that even synchronous P/B can only offer weak guarantees. Consider the following simple failure scenario:
+		* the primary receives a write and sends it to the backup the backup persists and ACKs the write and then primary fails before sending ACK to the client The client now assumes that the commit failed, but the backup committed it; if the backup is promoted to primary, it will be incorrect.
+	* Furthermore, P/B schemes are susceptible to split-brain, where the failover to a backup kicks in due to a temporary network issue and causes both the primary and backup to be active at the same time.
+* **Leader election**
+	* All nodes start as followers; one node is elected to be a leader at the start. During normal operation, the leader maintains a heartbeat which allows the followers to detect if the leader fails or becomes partitioned. When a node detects that a leader has become non-responsive (or, in the initial case, that no leader exists), it switches to an intermediate state (called "candidate" in Raft) where it increments the term/epoch value by one, initiates a leader election and competes to become the new leader. In order to be elected a leader, a node must receive a majority of the votes. One way to assign votes is to simply assign them on a first-come-first-served basis; this way, a leader will eventually be elected. Adding a random amount of waiting time between attempts at getting elected will reduce the number of nodes that are simultaneously attempting to get elected.
