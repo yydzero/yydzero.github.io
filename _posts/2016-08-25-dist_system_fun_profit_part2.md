@@ -13,6 +13,9 @@
 		* When a message is received:
 			* update each element in the vector to be max(local, received)
 			* increment the logical clock value representing the current node in the vector
+		* **Use cases of Vector Clock**:
+			* Git branch merge: key point is that vector merge is completely independent of value merge, you can define any rule regarding value merge; there exists timestamp conflict, you have to define the behavior of value merge when conflict happens;
+			* Dynamo of Amazon: write is fast, you only need to write to one node, to guarantee weak consistency, read has to read all nodes, and merge the value by timestamp of vector clock;
 * For synchronous system, **failure detection** is easy, since there is a upper bound for the message delay; For asynchronous system, it is hard to tell whether the no-response is caused by network partition or node failure; Ideally, we'd prefer the failure detector to be able to adjust to changing network conditions and to avoid hardcoding timeout values into it. For example, Cassandra uses an accrual failure detector, which is a failure detector that outputs a suspicion level (a value between 0 and 1) rather than a binary "up" or "down" judgment. This allows the application using the failure detector to make its own decisions about the tradeoff between accurate detection and early detection.
 * **Consensus problem**: Several processes (or computers) achieve consensus if they all agree on some value. Replicated systems that maintain single copy consistency need to solve the consensus problem in some way.
 * The **replication algorithms** that maintain single-copy consistency include:
