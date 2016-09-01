@@ -10,6 +10,17 @@ published: true
 it is a demo
 ============
 
+
+where to clone it?
+------------------
+
+```sh
+git clone git@github.com:yydzero/yydzero.github.io.git gpdbrocks
+```
+
+how to finish the course?
+-------------------------
+
 steps to learn how to write a post on GPDB rocks:
 
 - [x] learn syntex of Markdown
@@ -17,3 +28,8 @@ steps to learn how to write a post on GPDB rocks:
 - [] push and review on http://gpdb.rocks/
 - [] find some tools to edit markdown other than VIM
 
+
+confirmation
+------------
+
+finish two posts about hdfs?
