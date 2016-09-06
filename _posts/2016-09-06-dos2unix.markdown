@@ -56,3 +56,11 @@ https://sourceforge.net/projects/dos2unix
 format:
     @-[ -n "`command -v dos2unix`" ] && dos2unix -k -q src/*.cpp bin/gpcheckcloud/*.cpp test/*.cpp include/*.h
 ```
+
+Note: here we use `command` instead of `which` is because:
+
+http://mywiki.wooledge.org/BashFAQ/081
+
+I copy an interesting sentence below
+
+> The command which (which is often a csh script, although sometimes a compiled binary) is not reliable for this purpose. which may not set a useful exit code, and it may not even write errors to stderr. Therefore, in order to have a prayer of successfully using it, **one must parse its output** (wherever that output may be written).
