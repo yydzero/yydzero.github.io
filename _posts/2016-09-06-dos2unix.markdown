@@ -11,6 +11,7 @@ published: true
 When we are coding with different platforms, such as IDEs on Windows, and push the source-code onto GITHUB, we may see lots of diffs about text format (for example, \r\n). 
 
 In this case, we may two ways to solve it:
+
 1. use `gsed` or `perl` to format, for example,
 
 	`perl -pie 's/\n/\r\n/g' file`
@@ -20,7 +21,7 @@ In this case, we may two ways to solve it:
 
 In this post, we dig a little in `dos2unix`.
 
-#### what's `dos2unix`?
+#### 1. what's `dos2unix`?
 
 ```C
 /*
@@ -33,7 +34,7 @@ In this post, we dig a little in `dos2unix`.
  */
 ```
 
-#### what does `dos2unix` do?
+#### 2. what does `dos2unix` do?
 
 ```C
     /* CR-LF -> LF */
@@ -44,12 +45,12 @@ In this post, we dig a little in `dos2unix`.
     /* \x0d = Carriage Return (CR) */
 ```
 
-#### Where is the source-code of `dos2unix`?
+#### 3. Where is the source-code of `dos2unix`?
 
 https://sourceforge.net/projects/dos2unix
 
 
-#### How to use `dos2unix` in Makefile?
+#### 4. How to use `dos2unix` in Makefile?
 
 ```Makefile
 format:
