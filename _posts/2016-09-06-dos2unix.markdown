@@ -1,0 +1,57 @@
+---
+layout: post
+title:  "learn dos2unix"
+subtitle:  "学习dos2unix"
+author: 刘奎恩/Kuien, Haozhou Wang
+date:   2016-09-06 17:58 +0800
+categories: tools
+published: true
+---
+
+When we are coding with different platforms, such as IDEs on Windows, and push the source-code onto GITHUB, we may see lots of diffs about text format (for example, \r\n). 
+
+In this case, we may two ways to solve it:
+1. use `gsed` or `perl` to format, for example,
+
+	`perl -pie 's/\n/\r\n/g' file`
+
+2. need to use `dos2unix` in Makefiles to unify the text format.
+
+
+In this post, we dig a little in `dos2unix`.
+
+#### what's `dos2unix`?
+
+```C
+/*
+ *  Name: dos2unix
+ *  Documentation:
+ *    Remove cr ('\x0d') characters from a file.
+ *
+ *  The dos2unix package is distributed under FreeBSD style license.
+ *  See also http://www.freebsd.org/copyright/freebsd-license.ht
+ */
+```
+
+#### what does `dos2unix` do?
+
+```C
+    /* CR-LF -> LF */
+    /* LF    -> LF, in case the input file is a Unix text file */
+    /* CR    -> CR, in dos2unix mode (don't modify Mac file) */
+    /* CR    -> LF, in Mac mode */
+    /* \x0a = Newline/Line Feed (LF) */
+    /* \x0d = Carriage Return (CR) */
+```
+
+#### Where is the source-code of `dos2unix`?
+
+https://sourceforge.net/projects/dos2unix
+
+
+#### How to use `dos2unix` in Makefile?
+
+```Makefile
+format:
+    @-[ -n "`command -v dos2unix`" ] && dos2unix -k -q src/*.cpp bin/gpcheckcloud/*.cpp test/*.cpp include/*.h
+```
