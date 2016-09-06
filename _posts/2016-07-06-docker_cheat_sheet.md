@@ -21,7 +21,7 @@ eval $(docker-machine env gpdb)
 * then, we should have an image to run container
 
 ```
-# if no exiting image, build one or pull one from docker hub
+# if no existing image, build one or pull one from docker hub
 
 # build one from Dockerfile
 cd <path_to_gpdb>
@@ -71,4 +71,4 @@ docker rmi <image_id> # remove image; once we updated src code, we would build a
 
 * how to attach to a process using gdb?
 	* the container must be run with option --privileged
-	* --privileged option must be supplied when docker exec
+	* --privileged option must be provided when docker exec

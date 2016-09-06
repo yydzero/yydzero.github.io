@@ -2,8 +2,8 @@
 * Clone the tinc repo: git clone git@github.com:greenplum-db/tinc.git
 * Setup environment:
 	* source $GPHOME/greenplum_path.sh
-	* export $PGPORT= port
-	* export $PGDATABASE=postgres
+	* export PGPORT= port
+	* export PGDATABASE=postgres
 	* cd tinc
 	* source tinc_env.sh
 * Run the TINC test:
