@@ -1,0 +1,8 @@
+## Deadlock prevention algorithms
+* The **wound-wait** algorithm:
+	* "Wound-wait" scheme: It is based on a **preemptive method**. It is based on a simple rule:
+		* If Ti requests a database resource that is held by Tj, then if Ti has a larger timestamp (Ti is younger) than that of Tj, it is allowed to wait; else Tj is wounded up by Ti.
+	* For example, suppose that 3 transactions T1, T2 and T3 were generated in that series, then if T1 requests for a data item which is presently held by transaction T2, then T2 is rolled back and data item is allotted to T1 as T1 has a smaller time stamping than that of T2. Though, if T3 requests for a data item which is presently held by transaction T2, then T3 is permitted to wait.
+	* It is vital to see that whenever any transaction is rolled back, it would not make a starvation condition, i.e., no transaction gets rolled back repeatedly and is never permitted to make progress. Also both "wait-die" & "wound-wait" idea avoid starvation. The number of aborts & rollbacks will be higher in wait-die scheme than in the wound-wait idea. But one main problem with both of these ideas is that these ideas may result in **unnecessary rollbacks**.
+* The **Wait-Die** algorithm: 
+	* Allow wait only if waiting process is older(smaller timestamp). The Wait-Die algorithm kills(rollback) the younger process. When the younger process restarts and requests the resource again, it may be killed once more.
