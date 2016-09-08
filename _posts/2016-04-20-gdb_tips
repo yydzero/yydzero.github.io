@@ -1,6 +1,0 @@
-==> Using script in gdb is super powerful in some situations; Normally, we write
-	script in a file, and source this file in gdb, then we can use the functions
-	defined in the script; the syntax of the script is quite like python;
-
-==> To redirect the output of the gdb command to files, first, set logging file
-	to the destination file, then set logging on;
