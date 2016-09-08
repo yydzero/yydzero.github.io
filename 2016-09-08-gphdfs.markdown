@@ -1,0 +1,124 @@
+---
+layout:   post
+title:    "Learn how to use Hadoop to creat a external table"
+subtitle: 学习使用Hadoop创建外部表
+author:   Ning Wu
+date:     2016-09-08 09:30 +0800
+categories: test
+published: true
+---
+ 
+## 1. 什么是 Hadoop
+
+简单地来讲，Hadoop是一个能够对大量数据进行分布式处理的软件框架.
+
+Hadoop=HDFS（文件系统）+ Mapreduce（数据处理）
+
+## 2. GPDB如何从HDFS读取数据
+
+通过在location子句中指定主机名和端口号：
+
+``` 
+LOCATION (‘gphdfs://hdfs_host[:port]/path/filename.txt')
+```
+
+## 3. Hadoop伪分布式配置
+>* 安装Java环境
+>* 安装Hadoop发行版（以Hortonworks Data Platform 2.4为例)
+
+>* 设置环境变量
+>* *JAVA_HOME – the Java home directory*
+>* *HADOOP_HOME – the Hadoop home directory*
+>* *CLASSPATH  – the path to JAR files that contain Java classes that are required for gphdfs*
+
+>* 修改配置文件core—site.xml
+```
+ 19 <configuration>
+ 20         <property>
+ 21              <name>hadoop.tmp.dir</name>
+ 22              <value>file:/usr/local/hadoop/tmp</value>
+ 24         </property>
+ 25   <property>
+ 26         <name>fs.defaultFS</name>
+ 27         <value>hdfs:hdfshost-1:8020//</value>
+ 28   </property>
+ 29   <property>
+ 30     <name>hadoop.security.authorization</name>
+ 31         <value>false</value>
+ 32   </property>
+ 33 </configuration>
+```
+
+>* 修改配置文件hdfs—site.xml
+```
+ 19 <configuration>
+ 20   <property>
+ 21         <name>dfs.replication</name>
+ 22         <value>1</value>
+ 23     </property>
+ 24 <property>
+ 25              <name>dfs.namenode.name.dir</name>
+ 26              <value>file:/usr/local/hadoop/tmp/dfs/name</value>
+ 27         </property>
+ 28         <property>
+ 29              <name>dfs.datanode.data.dir</name>
+ 30              <value>file:/usr/local/hadoop/tmp/dfs/data</value>
+ 31         </property>
+ 32 </configuration>
+```
+
+## 4. 创建hadoop分布式外部表
+
+①创建目录 
+```
+hadoop fs -mkdir /plaintext
+```
+
+②查询目录
+```
+hadoop fs -ls
+ ```
+
+③将本地文件传到plaintext目录下 
+```
+hadoop fs -put filename.txt /plaintext
+ ```
+④我们为在HDFS上的文件filename.txt创建一个可读外部表 ext_expenses，端口号8020 
+
+```sql
+
+=# CREATE EXTERNAL TABLE ext_expenses (
+
+ 			name text,
+
+			date date,
+			
+			amount float4, 
+			
+			category text,
+			
+			desc1 text )
+
+LOCATION ('gphdfs://hdfshost-1:8020/plaintext/filename.txt')
+
+FORMAT 'TEXT' (DELIMITER '|');
+
+```
+⑤测试结果
+```
+$ psql demo
+psql (8.2.15)
+Type "help" for help.
+
+demo=# create external table ext_expenses(name text,date date,amount float4,category text,desc1 text) location('gphdfs://10.152.10.246:8020/plaintext/filename.txt') format 'text' (delimiter '|');
+CREATE EXTERNAL TABLE
+demo=# SELECT * from ext_expenses ;
+   name    |    date    | amount | category | desc1
+-----------+------------+--------+----------+--------
+ breakfast | 2016-08-01 |      5 | food     | basic
+ lunch     | 2016-08-01 |     15 | food     | basic
+ dinner    | 2016-08-01 |     50 | food     | basic
+ skirt     | 2016-08-01 |   1500 | cloth    | luxury
+ shoes     | 2016-08-01 |   1500 | cloth    | luxury
+(5 rows)
+```
