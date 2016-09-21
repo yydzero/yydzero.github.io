@@ -41,6 +41,13 @@ published: true
     	return res
     }
 
+### 通过 defer 统一处理错误
+
+	func handle() (err error) {
+		defer cn.errRecover(&err)
+	}
+
+
 
 ### bytes.buffer WriteTo() 直接写入文件
 
