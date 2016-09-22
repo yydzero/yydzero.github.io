@@ -5,3 +5,4 @@
 	* when meeting ImportError: No Module Named xxx, we should check whether the module can be found in the $PYTHONPATH, and **the user has permission to the dirs there**;
 	* usally, modules installed by 'pip install' would have a dir under site-packages, while modules installed by 'python setup.py install' would install a .egg file there, both are fine;
 * If compiling python from source code, by default, it would not build shared library, we have to specify it during configure: ./configure --enable-shared
+* if `pip install` fails, we usually try installing the module from source code by `python setup.py build; python setup.py install`
