@@ -19,7 +19,7 @@ Blog: [Build a USB SSH key](http://tammersaleh.com/posts/building-an-encrypted-u
 
 1. format your USB key using OS X's built-in encrypted filesystem
 2. generate (or copy original) SSH keys by `ssh-keygen`
-3. prepare SSH key loading script with command `ssh-add -t TIME $USB/id_ras`
+3. prepare SSH key loading script with command `ssh-add -t TIME $USB/id_rsa`
 4. copy SSH key and script onto you encrypted USB key
 5. copy SSH key to github.com (and retire existing ones)
 
