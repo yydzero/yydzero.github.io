@@ -152,3 +152,13 @@ On MAC OS X EL Capitan
 如果机器够强大，使用 demo cluster 更简单些。
 * 如果有什么问题，欢迎使用 GPDB 的邮件列表报告bug： greenplum.org
 * 本网站仅是临时GPDB中文网站，请以 greenplum.org 信息为准。
+* configure: error: header file <openssl/ssl.h> is required for OpenSSL
+
+        brew install openssl && brew link openssl --force
+
+        ± |master ✗| → cat build.sh
+        #!/bin/bash
+
+        # ENABLE_ORCA=--enable-orca
+
+        KCFLAGS=-ggdb3 CFLAGS="-O0 -g3 -I/usr/local/include -L/usr/local/lib"  ./configure --prefix=/Users/yyao/work/build/master --with-gssapi --with-pgport=5432 --with-libedit-preferred --with-perl --with-python --with-openssl --with-pam --with-krb5 --with-ldap --with-libxml --enable-cassert --enable-debug --enable-testutils --enable-debugbreak --enable-depend --no-create --no-recursion $ENABLE_ORCA --disable-gpfdist
