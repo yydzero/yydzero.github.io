@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "PostgreSQL Dump/Restore"
+title:  "GPDB Extension Alter Bug Case Study"
 author: Pivotal Engineer/姚延栋
 date:   2016-10-28 11:00 +0800
 categories: gpdb extension
