@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "PostgreSQL Dump/Restore"
-author: Pivotal Engineer
+author: Pivotal Engineer/姚延栋
 date:   2016-10-28 11:00 +0800
 categories: gpdb extension
 published: true
