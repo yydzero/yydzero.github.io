@@ -414,7 +414,7 @@ access control directive:
     <priv> ::= {=|+|-}{m|w|r|s|c|x|d|0}+
     <control> ::= [stop | continue | break]
 
-<what> 部分是访问控制的 entries 和/或属性, <who> 部分表示赋予谁权限, <access> 表示授予的具体权限.
+	<what> 部分是访问控制的 entries 和/或属性, <who> 部分表示赋予谁权限, <access> 表示授予的具体权限.
 
 访问控制指令的顺序很重要,越具体的指令放在前面.
 
