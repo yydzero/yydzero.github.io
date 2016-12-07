@@ -52,7 +52,7 @@ concourse-db:
   environment:
     POSTGRES_DB: concourse
     POSTGRES_USER: concourse
-    POSTGRES_PASSWORD: changeme
+    POSTGRES_PASSWORD: XXXX
     PGDATA: /database
 
 concourse-web:
@@ -63,10 +63,10 @@ concourse-web:
   volumes: ["./keys/web:/concourse-keys"]
   environment:
     CONCOURSE_BASIC_AUTH_USERNAME: concourse
-    CONCOURSE_BASIC_AUTH_PASSWORD: changeme
+    CONCOURSE_BASIC_AUTH_PASSWORD: XXXX
     CONCOURSE_EXTERNAL_URL: "${CONCOURSE_EXTERNAL_URL}"
     CONCOURSE_POSTGRES_DATA_SOURCE: |
-      postgres://concourse:changeme@concourse-db:5432/concourse?sslmode=disable
+      postgres://concourse:XXXX@concourse-db:5432/concourse?sslmode=disable
 
 concourse-worker:
   image: concourse/concourse

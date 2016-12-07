@@ -95,7 +95,7 @@ following group.ldif will create two ou (People, Groups) and rootdn: gpadmin
 	objectclass: organizationalRole
 	cn: gpadmin
 
-	$ ldapadd -vvv -x -D "cn=admin,dc=pivotal,dc=io" -w changeme -f group.ldif
+	$ ldapadd -vvv -x -D "cn=admin,dc=pivotal,dc=io" -w XXXX -f group.ldif
 
 	$ ldapsearch -x -b 'dc=pivotal,dc=io' '(objectclass=*)'
 
@@ -128,17 +128,17 @@ following group.ldif will create two ou (People, Groups) and rootdn: gpadmin
 
 Load user account into LDAP server.
 
-	$ ldapadd -vvv -x -D "cn=admin,dc=pivotal,dc=io" -w changeme -f user.ldif
+	$ ldapadd -vvv -x -D "cn=admin,dc=pivotal,dc=io" -w XXXX -f user.ldif
 
 Setup user's password
 
-	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w changeme uid=plainuser,dc=pivotal,dc=io -s changeme
-	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w changeme uid=tlsuser,dc=pivotal,dc=io -s changeme
-	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w changeme uid=ldapsuser,dc=pivotal,dc=io -s changeme
+	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w XXXX uid=plainuser,dc=pivotal,dc=io -s XXXX
+	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w XXXX uid=tlsuser,dc=pivotal,dc=io -s XXXX
+	$ ldappasswd -S -x -D "cn=admin,dc=pivotal,dc=io" -w XXXX uid=ldapsuser,dc=pivotal,dc=io -s XXXX
 
 Verify works using normal user credential:
 
-	$ ldapsearch -x -h localhost -D "uid=plainuser,dc=pivotal,dc=io" -w changeme -b "dc=pivotal,dc=io" cn
+	$ ldapsearch -x -h localhost -D "uid=plainuser,dc=pivotal,dc=io" -w XXXX -b "dc=pivotal,dc=io" cn
 
 ## 5. Setup LDAP with TLS/SSL
 
@@ -208,9 +208,9 @@ Change OpenLDAP client config file: ldap.conf with following line:
 
 	// -w: password
 	// -D: bind
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -ZZ -LLL -w changeme
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -ZZ -LLL -w XXXX
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=tlsuser,dc=pivotal,dc=io' '(uid=plainuser)' -ZZ -LLL -w changeme
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=tlsuser,dc=pivotal,dc=io' '(uid=plainuser)' -ZZ -LLL -w XXXX
 
 ### 5.7 verify certificate (optional)
 
@@ -221,23 +221,23 @@ Change OpenLDAP client config file: ldap.conf with following line:
 
 #### 5.8.1 Without SSL
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g180>
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w XXXX -H <ldap://g180>
 
 #### 5.8.2 With SSL
 
 firstly it will fail, because we have not setup certificate yet.
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H <ldap://g180> -ZZ
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w XXXX -H <ldap://g180> -ZZ
 	ldap_start_tls: Connect error (-11) additional info: <a href="http://error:14090086:SSL" class="external-link">error:14090086:SSL</a>
 	routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed
 
 copy CA.crt to client and verify both of them has same hostname (g180 -> g0), then it works using same command.
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H ldap://g0 -ZZ
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'cn=admin,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w XXXX -H ldap://g0 -ZZ
 
 use a new user instead of admin
 
-	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=plainuser,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w changeme -H ldap://g0 -ZZ
+	$ ldapsearch -x -b 'dc=pivotal,dc=io' -D 'uid=plainuser,dc=pivotal,dc=io' '(uid=tlsuser)' -LLL -w XXXX -H ldap://g0 -ZZ
 
 ### 5.9 enable OpenLDAP Log: Use syslog on Linux/Unix, olcLogFile on Windows.
 
@@ -263,7 +263,7 @@ Add following line to /etc/rsyslog.conf
 	// change loglevel dynamically
 	# ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f newloglevel.ldif
 	// or
-	# ldapmodify -x -D 'cn=admin,dc=pivotal,dc=io' -w changeme -f newloglevel.ldif
+	# ldapmodify -x -D 'cn=admin,dc=pivotal,dc=io' -w XXXX -f newloglevel.ldif
 
 ### 6. Verify LDAPS works (optional, only needed with ldaps)
 
@@ -292,7 +292,7 @@ $HOME/.ldaprc. GPDB LDAP lib will NOT read /etc/openldap/ldap.conf
 Pay attention of ldapserver, if you are using domain name when generating server certification above, please use FQDN also here. (output of 'hostname -f'). Change ldapserver to your LDAP server name.
 
 	host  all  tlsuser 0.0.0.0/0 ldap ldapserver=_LDAP_SERVER_ ldaptls=1 ldapprefix="uid=" ldapsuffix=",dc=pivotal,dc=io"
-	host  all  admin   0.0.0.0/0 ldap ldapserver=_LDAP_SERVER_ ldapbasedn="dc=pivotal,dc=io" ldapbinddn="dc=pivotal,dc=io" ldapbindpasswd="changeme" ldapsearchattribute="uid"
+	host  all  admin   0.0.0.0/0 ldap ldapserver=_LDAP_SERVER_ ldapbasedn="dc=pivotal,dc=io" ldapbinddn="dc=pivotal,dc=io" ldapbindpasswd="XXXX" ldapsearchattribute="uid"
 
 ## Enable slapds:// on OpenLDAP 2.4 (optional and not recommended)
 
