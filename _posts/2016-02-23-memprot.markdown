@@ -17,3 +17,5 @@
 * There are 3 kinds of OOM: `MemoryFailure_SystemMemoryExhausted`(malloc returns NULL), `MemoryFailure_VmemExhausted`(`gp_vmem_protect_limit` hit) and `MemoryFailure_QueryMemoryExhausted`(`gp_limit_per_query` hit), the first one is raised in `gp_malloc_internal` when reserving succeeds but malloc fails, the other two are raised in `VmemTracker_ReserveMem`
 
 * From manual page of linux, malloc would return NULL if the request fails, and set the errno to `ENOMEM(12)`; malloc has a known optimistic bug, which means that even if malloc returns some memory, there can be OOM when using this pointer; the new version kernel has an option to turn off this `overcommit_memory` feature;
+
+* In function `ResourceQueueGetQueryMemoryLimit`, we would compare the value computed from resource queue and the value of `statement_mem`, and use the larger one as the memory limit of the query; For super users, we would simply use `statement_mem`; this memory limit would be set in `PlannedStmt->query_mem`, and then distributed to plan operators in function `ExecutorStart` later
