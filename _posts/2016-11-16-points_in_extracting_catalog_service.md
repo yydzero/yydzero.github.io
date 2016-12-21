@@ -1,0 +1,3 @@
+## Points in extracting catalog service
+* Not simply catalog table access(SELECT/INSERT/UPDATE), there are some files containing metadata, for example file "pg_database" used in FindMyDatabase; my solution is to wrap this to a UDF, and database get these files from catalog PG using UDF;
+* BootStrapXLOG must be called at least once to create file pg_control(xlog related, so should be bound with PG process), so I write a function bootstrap_database;
