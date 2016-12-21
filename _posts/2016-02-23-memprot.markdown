@@ -1,60 +1,19 @@
-==> GPDB has a memory protection mechanism, which is a wrapper of
-	malloc/calloc/free along with the vmem_tracker, the interface
-	is gp_malloc etc.
+* GPDB has a memory protection mechanism, which is a wrapper of `malloc/calloc/free` along with the `vmem_tracker`, the interface is `gp_malloc` etc. `gp_malloc` would check whether memory protection is enabled, if no, bare malloc would be invoked; if yes, then it would first reserve quota from `vmem_tracker`, if request to `vmem_tracker` fails, for per-query memory limit hit or segment memory quota hit, then `gp_failed_to_alloc` would be called to report the OOM catagory and use `MemoryAccounting_SaveToLog()` to write the memory accounting tree to log with `write_stderr`, and `MemoryContextStats()` to write the useage details of a `TopMemoryContext` to log; then `gp_failed_to_alloc` would check whether core dump is requested, and raise a ERROR to abort current query;
 
-	gp_malloc would check whether memory protection is enabled, if
-	no, bare malloc would be invoked; if yes, then it would first
-	reserve quota from vmem_tracker, if request to vmem_tracker fails,
-	for per-query memory limit hit or segment memory quota hit, then
-	gp_failed_to_alloc would be called to report the OOM catagory and use
-	MemoryAccounting_SaveToLog() to write the memory accounting tree to log
-	with write_stderr, and MemoryContextStats() to write the useage details
-	of a TopMemoryContext to log; then gp_failed_to_alloc would check whether
-	core dump is requested, and raise a ERROR to abort current query;
+* There are cases the memory accouting tree is very huge, e.g, consuming more than 100,000 lines of log to record in JIRA 26198; during the logging process, there are chances of calling bare malloc by other backends, thus leading to NULL return and possible SIGSEGV(JIRA MPP-26198), and hence postmaster reset, so no ERROR could be observed;
 
-	There are cases the memory accouting tree is very huge, e.g, consuming
-	more than 100,000 lines of log to record in JIRA 26198; during the logging
-	process, there are chances of calling bare malloc by other backends, thus
-	leading to NULL return and possible SIGSEGV(JIRA MPP-26198), and hence
-	postmaster reset, so no ERROR could be observed;
+* `vmem_tracker` is just a memory counter; If `vmem_tracker` says yes for the request, then `gp_malloc_internal` would call malloc or calloc, if NULL is returned(system OOM), then system OOM catagory would be recorded in log by `gp_failed_to_alloc`;
 
-	vmem_tracker is just a memory counter;
+* `AllocSetAllocImpl` uses `gp_malloc`, hence `palloc`;
 
-	If vmem_tracker says yes for the request, then gp_malloc_internal would call
-	malloc or calloc, if NULL is returned(system OOM), then system OOM catagory
-	would be recorded in log by gp_failed_to_alloc;
+* `ReportOOMConsumption` is called in critical spot of query execution, for example `ExecutorEnd`, and `CHECK_FOR_INTERRUPTS`, it is to check whether new OOM happend on the whole segment, if yes, then report current process' memory usage to log;
 
-	AllocSetAllocImpl uses gp_malloc, hence palloc;
+* memory accounting mechanism of GPDB: MemoryAccount is organized as a tree, but not a mapping of plan tree, it contains nodes such as Executor, Planner, SubqueryScan, etc. It is not that strict; It is implemented into `AllocSetAlloc`, and tracked by functions such as `MemoryAccounting_Allocate`, that is to say, every time when you can palloc, this memory allocation can be tracked into a memory account specified; to specify a memory account, you can use `START_MEMORY_ACCOUNT/END_MEMORY_ACCOUNT` to specify the desirable memory account; The memory allocation track is not propagated to parent, so `TopMemoryAccount` may has fields of 0; When OOM happens, `MemoryAccounting_SaveToLog` would write the memory account tree into log;
+	
+* `segmentVmemChunks` tracks the vmem used in this segment, and compare it with `redZoneChunks` <= implemented in `RedZoneHandler_IsVmemRedZone`
+* `RedZoneHandler_DetectRunawaySession` is called in `CHECK_FOR_INTERRUPTS`, and in `VmemTracker_ReserveVmem` each time the process need a new 'chunk';
+* `VmemTracker_ReserveVmem` is implemented as a wrapper of `VmemTracker_ReserveVmemChunks`, the reason for using chunk is to enlarge the granularity of memory protection, we don't need to bother to have a check every time we allocate memory, especially when the requested size is small, so we check the protection in the unit of chunk; `VmemTracker_ReserveVmemChunks` would check the `maxChunksPerQuery` and `vmemChunksQuota`;
+* `gp_vmem_limit_per_query` is the vmem limit for a query in **a QE**, `maxChunksPerQuery` is computed from this guc, while `vmemChunksQuota` is computed from `gp_vmem_protect_limit`;
+* There are 3 kinds of OOM: `MemoryFailure_SystemMemoryExhausted`(malloc returns NULL), `MemoryFailure_VmemExhausted`(`gp_vmem_protect_limit` hit) and `MemoryFailure_QueryMemoryExhausted`(`gp_limit_per_query` hit), the first one is raised in `gp_malloc_internal` when reserving succeeds but malloc fails, the other two are raised in `VmemTracker_ReserveMem`
 
-	ReportOOMConsumption is called in critical spot of query execution, for
-	example ExecutorEnd, and CHECK_FOR_INTERRUPTS, it is to check whether new
-	OOM happend on the whole segment, if yes, then report current process'
-	memory usage to log;
-
-==> memory accounting mechanism of GPDB
-	MemoryAccount is organized as a tree, but not a mapping of plan tree, it
-	contains nodes such as Executor, Planner, SubqueryScan, etc. It is not that
-	strict;
-
-	It is implemented into AllocSetAlloc, and tracked by functions such as
-	MemoryAccounting_Allocate, that is to say, every time when you can palloc,
-	this memory allocation can be tracked into a memory account specified; to
-	specify a memory account, you can use
-	START_MEMORY_ACCOUNT/END_MEMORY_ACCOUNT to specify the desirable memory
-	account;
-
-	The memory allocation track is not propagated to parent, so TopMemoryAccount
-	may has fields of 0;
-
-	When OOM happens, MemoryAccounting_SaveToLog would write the memory account
-	tree into log;
-
-==> From manual page of linux, malloc would return NULL if the request fails,
-	and set the errno to ENOMEM(12); malloc has a known optimistic bug, which
-	means that even if malloc returns some memory, there can be OOM when using
-	this pointer; the new version kernel has an option to turn off this
-	overcommit_memory feature;
-
-==> PQExpBuffer is robust enough to do the NULL pointer check internally,
-	however, if you want to access the memory of returned buffer directly, you
-	should add NULL pointer check;
+* From manual page of linux, malloc would return NULL if the request fails, and set the errno to `ENOMEM(12)`; malloc has a known optimistic bug, which means that even if malloc returns some memory, there can be OOM when using this pointer; the new version kernel has an option to turn off this `overcommit_memory` feature;
