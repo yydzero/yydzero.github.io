@@ -1,0 +1,19 @@
+## Introduction to CGroups
+* The cgconfig (control group config) service can be configured to start up at boot time and reestablish your predefined cgroups, thus making them persistent across reboots.
+* The fundamental difference between Linux process model and CGroup model is that many different hierarchies of cgroups can exist simultaneously on a system. If the Linux process model is a single tree of processes, then the cgroup model is one or more separate, unconnected trees of tasks (i.e. processes). Multiple separate hierarchies of cgroups are necessary because each hierarchy is attached to one or more subsystems. A subsystem represents a single resource, such as CPU time or memory.
+* Let me try and explain what control groups are, and what they allow you to do. Lets say for example that you have a resources intensive application on a server. Linux is great at sharing resources between all of the processes on a system, but in some cases, you want to allocate, or guarantee, a greater amount to a specific application, or a set of applications, this is where control groups are useful.
+* lets say we wanted to manage, cpu, memory, disk and network bandwidth, for our application. So, I would create a group, and assign resources limits to this group, something like this. Keep in mind, the application knows nothing about these limits, this is happening outside of our application. Once the group is created, you simple need to add your applications process ids, or pids, into a file, and your applications are automatically throttled. This can happen on the fly, without system reboots, you can also adjust these limits on the fly. I just wanted to mention, that our application will be allowed to spike outside these percentage limits, but if there is resource contention, our application will be throttled back to 80%.
+* Lets go ahead and install libcgroup on a CentOS 6.4 machine, by running, yum install libcgroup. I always like to see what files were just installed, this helps me know where to look for scripts and configuration files. Lets run rpm --query --list libcgroup and pipe the output to less, which will give us a listing of all the files and their locations for the libcgroup package we just installed.
+* We noticed that a new /cgroup directory was created, this is where the cgroup **virtual filesystems** will be mounted.
+* Before we call `service cgconfig start`, there is no directory under /cgroup/, that is to say, every time cgroup exits, the directories are removed; in rhel 6, the daemon is named `[cgroup]`
+* Lets list the directory contents again, as you can see our new directory is here. Lets change to this test1 directory and list the contents. So, you can see that our directory get automagically populated, and that it looks exactly like the parent directory, with the exception of the release_agent file. The release_agent is only present at the topmost of root level object.
+* how to drop `page cache` and `buffer cache` of OS?
+
+```
+free -m
+echo 3 > /proc/sys/vm/drop_caches
+free -m
+```
+* We can use the `cgexec` command to run commands in a control group
+* instead of checking `/etc/cgroup.conf`, we can use the `cgsnapshot` command, to dump the running configuration
+* `cgred` can be used to classify programs in the background, and assign them to control groups. In the examples that we covered today, we manually ran programs in a control group via the `cgexec` command, but with `cgred`, you can define rules, and automatically, slot processes into these groups. You can do this by using the `/etc/cgrules.conf` file, to classify users, commands, or even entire user groups into predefined control groups based off defined rules. This is extremely useful, since up till now we have been manually assigning tasks into control groups.
