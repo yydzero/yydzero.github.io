@@ -7,9 +7,10 @@ date:   2017-01-20
 categories: GPDB
 ---
 
-https://github.com/violet1986/dockerfiles/tree/master/kerberos-dockers
 
-This project has 4 dockerfiles and one bash script to start them and create a cluster with kerberos server/ldap server/gpdb server/client containers.
+https://github.com/yydzero/dockerfiles
+
+This project is under kerberos-dockers folder of the repo. It has 4 dockerfiles and one bash script to start them and create a cluster with kerberos server/ldap server/gpdb server/client containers.
 
 # How To Use
 
