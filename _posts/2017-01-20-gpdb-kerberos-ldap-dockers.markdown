@@ -8,7 +8,7 @@ categories: GPDB
 ---
 
 
-https://github.com/yydzero/dockerfiles
+(https://github.com/yydzero/dockerfiles)
 
 This project is under kerberos-dockers folder of the repo. It has 4 dockerfiles and one bash script to start them and create a cluster with kerberos server/ldap server/gpdb server/client containers.
 
