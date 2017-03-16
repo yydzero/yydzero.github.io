@@ -22,30 +22,30 @@
 * There seems no clear principle whether we should manually release the table locks inside the transaction by code, it may differ from case to case, so keep in mind the conflict tables and guard against those unsafe operations. (check out discussions in gpdb-dev mailing list: `Why locks are held until end of transaction`)
 
 * For row level locks, specifically `SELECT FOR UPDATE/SHARE`, `xmax` and `t_infomask` fields of the tuple header are used to implement the locking semantic, because a transaction can take a lot of row locks before committing, which introduces the concern of regular lock table overflow. However, there do exist `LockTuple` function, comments of `heap_lock_tuple` explains:
-> NOTES: because the shared-memory lock table is of finite size, but users
-could reasonably want to lock large numbers of tuples, we do not rely on
-the standard lock manager to store tuple-level locks over the long term.
-Instead, **a tuple is marked as locked by setting the current transaction's
-XID as its XMAX, and setting additional infomask bits to distinguish this
-usage from the more normal case of having deleted the tuple**. When
-multiple transactions concurrently share-lock a tuple, the first locker's
-XID is replaced in XMAX with a **MultiXactId** representing the set of
-XIDs currently holding share-locks.
->When it is necessary to wait for a tuple-level lock to be released, the
-basic delay is provided by `XactLockTableWait` or `MultiXactIdWait` on the
-contents of the tuple's XMAX.  However, **that mechanism will release all
-waiters concurrently, so there would be a race condition as to which
-waiter gets the tuple, potentially leading to indefinite starvation of
-some waiters**.  The possibility of share-locking makes the problem much
-worse --- a steady stream of share-lockers can easily block an exclusive
-locker forever. **To provide more reliable semantics about who gets a
-tuple-level lock first, we use the standard lock manager**.  The protocol
-for waiting for a tuple-level lock is really like the following code. When there are multiple waiters, arbitration of who is to get the lock next is provided by LockTuple(). However, **at most one tuple-level lock will
-be held or awaited per backend at any time, so we don't risk overflow
-of the lock table**.  Note that incoming share-lockers are required to
-do LockTuple as well, if there is any conflict, to ensure that they don't
-starve out waiting exclusive-lockers.  However, if there is not any active
-conflict for a tuple, we don't incur any extra overhead.
+	> NOTES: because the shared-memory lock table is of finite size, but users
+	could reasonably want to lock large numbers of tuples, we do not rely on
+	the standard lock manager to store tuple-level locks over the long term.
+	Instead, **a tuple is marked as locked by setting the current transaction's
+	XID as its XMAX, and setting additional infomask bits to distinguish this
+	usage from the more normal case of having deleted the tuple**. When
+	multiple transactions concurrently share-lock a tuple, the first locker's
+	XID is replaced in XMAX with a **MultiXactId** representing the set of
+	XIDs currently holding share-locks.
+	>When it is necessary to wait for a tuple-level lock to be released, the
+	basic delay is provided by `XactLockTableWait` or `MultiXactIdWait` on the
+	contents of the tuple's XMAX.  However, **that mechanism will release all
+	waiters concurrently, so there would be a race condition as to which
+	waiter gets the tuple, potentially leading to indefinite starvation of
+	some waiters**.  The possibility of share-locking makes the problem much
+	worse --- a steady stream of share-lockers can easily block an exclusive
+	locker forever. **To provide more reliable semantics about who gets a
+	tuple-level lock first, we use the standard lock manager**.  The protocol
+	for waiting for a tuple-level lock is really like the following code. When there are multiple waiters, arbitration of who is to get the lock next is provided by LockTuple(). However, **at most one tuple-level lock will
+	be held or awaited per backend at any time, so we don't risk overflow
+	of the lock table**.  Note that incoming share-lockers are required to
+	do LockTuple as well, if there is any conflict, to ensure that they don't
+	starve out waiting exclusive-lockers.  However, if there is not any active
+	conflict for a tuple, we don't incur any extra overhead.
 
 	```
 	LockTuple()
