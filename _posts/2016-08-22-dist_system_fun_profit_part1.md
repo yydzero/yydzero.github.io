@@ -1,16 +1,8 @@
-* Computations primarily benefit from high-end hardware to the extent to which they can replace slow network accesses with internal memory accesses. The performance advantage of high-end hardware is limited in tasks that require large amounts of communication between nodes.
-* **Scalability**:
-	* with dataset constant, adding more nodes should make the system linearly faster;
-	* growing the dataset should not increase latency if linearly add nodes;
 * **Measure of scalability**:
 	* performance
 		* Short response time/low latency for a given piece of work
 		* High throughput
 	* availability
-* A system that makes weaker guarantees has more freedom of action, and hence
-potentially greater performance - but it is also potentially hard to reason
-about. People are better at reasoning about systems that work like a single
-system, rather than a collection of nodes.
 * network partitions (e.g. total network failure between some nodes). A network partition occurs when the network fails while the nodes themselves remain operational. 
 * **Two basic techniques that can be applied to a data set**. It can be split over multiple nodes (partitioning) to allow for more parallel processing. It can also be copied or cached on different nodes to reduce the distance between the client and the server and for greater fault tolerance (replication).
 	* partition
@@ -23,7 +15,7 @@ system, rather than a collection of nodes.
 * **System model**: a set of assumptions about the environment and facilities on which a distributed system is implemented. Assumptions include:
 	* what capabilities the nodes have and how they may fail
 	* how communication links operate and how they may fail
-	* properties of the overall system, such as assumptions about *time and order*
+	* properties of the overall system, such as assumptions about **time** and **order**
 * The synchronous system model imposes many constraints on time and order. It
 essentially assumes that the nodes have the same experience: that messages that
 are sent are always received within a particular maximum transmission delay, and

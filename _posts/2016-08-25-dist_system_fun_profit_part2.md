@@ -1,6 +1,5 @@
 * A **total order** is a binary relation that defines an order for every element in some set.
 * Two distinct elements are comparable when one of them is greater than the other. In a **partially ordered** set, some pairs of elements are not comparable and hence a partial order doesn't specify the exact order of every item.
-* Both total order and partial order are transitive and antisymmetric.
 * Facebook's Canssandra and Google's spanner uses global clock;
 * Substitution of clock to indicate order: **Lamport clock and Vector clock**
 	* A Lamport clock is simple. Each process maintains a counter using the following rules:
@@ -29,6 +28,3 @@
 		* synchronous primary/backup replication: Filerep of GPDB
 	* it is worth noting that even synchronous P/B can only offer weak guarantees. Consider the following simple failure scenario:
 		* the primary receives a write and sends it to the backup the backup persists and ACKs the write and then primary fails before sending ACK to the client The client now assumes that the commit failed, but the backup committed it; if the backup is promoted to primary, it will be incorrect.
-	* Furthermore, P/B schemes are susceptible to split-brain, where the failover to a backup kicks in due to a temporary network issue and causes both the primary and backup to be active at the same time.
-* **Leader election**
-	* All nodes start as followers; one node is elected to be a leader at the start. During normal operation, the leader maintains a heartbeat which allows the followers to detect if the leader fails or becomes partitioned. When a node detects that a leader has become non-responsive (or, in the initial case, that no leader exists), it switches to an intermediate state (called "candidate" in Raft) where it increments the term/epoch value by one, initiates a leader election and competes to become the new leader. In order to be elected a leader, a node must receive a majority of the votes. One way to assign votes is to simply assign them on a first-come-first-served basis; this way, a leader will eventually be elected. Adding a random amount of waiting time between attempts at getting elected will reduce the number of nodes that are simultaneously attempting to get elected.
