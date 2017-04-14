@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Integrate VIM with CLangFormat"
-subtitle:  "Vim中集成CLangFormat"
+title:  "Integrate VIM with ClangFormat"
+subtitle:  "Vim中集成ClangFormat"
 author: 刘奎恩/Kuien
 date:   2016-08-18 12:58 +0800
 categories: vim 
@@ -22,7 +22,7 @@ brew install clang-format
 clang-format -style=google -dump-config > .clang-format
 ```
 
-`.clang-format` is YAML format configure file for CLangFormat
+`.clang-format` is YAML format configure file for ClangFormat
 
 An example of a configuration file for multiple languages:
 

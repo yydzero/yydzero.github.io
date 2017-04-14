@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "learn use Hadoop to creat external table"
+title:  "Learn creating external table via HDFS"
 subtitle:  "学习使用Hadoop创建外部表"
 author: Wu Ning
 date:   2016-09-07 12:58 +0800

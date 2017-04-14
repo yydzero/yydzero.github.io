@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Update YUM repo in RHEL7 in China"
-subtitle:  "如何配置RHEL7上的yum repo"
+title:  "Update YUM repo of CentOS 7"
+subtitle:  "如何配置CentOS 7上的yum repo"
 author: 刘奎恩 王淏舟
 date:   2016-03-01 18:01:24
 categories: rhel yum repo
@@ -9,7 +9,7 @@ published: true
 ---
 
 To install dependent 3rd-party libraries, we use YUM to install them. But the default
-repo of yum on RHEL 7 is really slow, I suggest you use below yum repo from USTC or
+repo of yum on CentOS 7 is really slow, I suggest you use below yum repo from USTC or
 163:
 
 * [USTC mirror](https://lug.ustc.edu.cn/wiki/mirrors/help/centos)

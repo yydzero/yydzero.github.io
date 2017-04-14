@@ -8,4 +8,4 @@ categories: gpdb knowledge base
 published: true
 ---
 
-https://support.pivotal.io/hc/en-us/categories/200072608
+[https://support.pivotal.io/hc/en-us/categories/200072608](https://support.pivotal.io/hc/en-us/categories/200072608)
