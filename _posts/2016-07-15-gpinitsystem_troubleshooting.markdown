@@ -50,11 +50,24 @@ Utility mode 启动 master，仅仅允许utility 模式连接。
 
      /home/gpadmin/build/gpdb.master/bin/lib/gp_bash_functions.sh: line 493: [: -gt: unary operator expected
 
+## 不能连接到server：找不到domain socket
+
+	○ → PGOPTIONS='-c gp_session_role=utility' /Users/yydzero/work/build/master/bin/psql postgres
+	psql: could not connect to server: No such file or directory
+	Is the server running locally and accepting
+	connections on Unix domain socket "/var/pgsql_socket/.s.PGSQL.5432"?
+
+这个通常是由于不同的 psql binary 造成的，也就是说自己编译的 psql 调用了系统的 libpq 库。可以通过 ldd 或者 otool -L 查看。
+
+解决方法：
+
+	export LD_LIBRARY_PATH=/path/to/your/psql/lib
+
 ## 问题
 
 一旦出错，不知道原因是什么。非常难于 trouble shooting。 很多错误直接重定向到 /dev/null 了。
 
 ## tricks
 
-## set -x in bin/lib/gp_bash_functions.sh
+### set -x in bin/lib/gp_bash_functions.sh
 
