@@ -14,6 +14,9 @@ published: true
   * startup.log
   * gpdb-<date>.csv
 
+## 如果使用 mac，则首先 disable MAC 的 SIP 特性
+
+    https://www.igeeksblog.com/how-to-disable-system-integrity-protection-on-mac/
 
 ## 初始化 master 数据库失败
 
