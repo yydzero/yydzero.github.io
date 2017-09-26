@@ -1,13 +1,8 @@
----
-version:	beta version
-date:		2016-08-14
-published:	false
----
-
-
 # Greenplum 数据库最佳实践
 
-作者姚延栋、刘奎恩。
+译者姚延栋，校订刘奎恩
+
+最新英文版：http://gpdb.docs.pivotal.io/500/best_practices/summary.html
 
 ## 第一章
 
