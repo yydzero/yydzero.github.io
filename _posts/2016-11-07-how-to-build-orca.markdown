@@ -32,3 +32,15 @@ published: true
     cmake -D CMAKE_BUILD_TYPE=DEBUG ../
     make
     sudo make install
+
+## Rebuild ORCA
+
+    rm -rf /usr/local/include/gp*
+    rm -rf /usr/local/include/naucrates
+    rm -rf /usr/local/lib/libgp*
+
+    cd build
+    ninja clean
+    ninja install
+
+
