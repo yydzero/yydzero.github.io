@@ -1,3 +1,11 @@
+---
+layout: post
+title: "GPDB5中的自动类型转换"
+author: Jasper Li
+date: 2017-11-30 18:00:00 +0800
+comments: true
+---
+
 # GPDB5中的自动类型转换
 ## 问题
 > create table test (id int, name text);  
