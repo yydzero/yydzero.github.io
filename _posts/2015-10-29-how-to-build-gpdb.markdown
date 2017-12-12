@@ -25,6 +25,8 @@ Greenplum Database 编译和运行依赖于各种系统库和Python库。需要�
     $ sudo yum install pam pam-devel        # If enable PAM
 
     $ sudo yum install perl-devel           # If need installcheck-good
+    $ wget ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/tools:/mytestbed:/sid/CentOS_6/x86_64/sigar-1.6.5-18.1.x86_64.rpm
+    $ sudo rpm --install sigar-1.6.5-18.1.x86_64.rpm        # if enable gpperfmon 
 
 	一种安装python库的方法是：
 
