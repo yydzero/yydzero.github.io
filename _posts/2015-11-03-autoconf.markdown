@@ -13,7 +13,7 @@ categories: autoconf libtool
 ### 1. 介绍
 
 Autoconf is a tool for producing shell scripts that automatically configure software
-source code packageto adapt to many kinds of POSIX-like systems. The primary goal of
+source code package to adapt to many kinds of POSIX-like systems. The primary goal of
 Autoconf is making the user's life easier; making the maintainer's life easier is only
 a secondary goal. 换句话说就是 autoconf 的目的不是更容易生成 configure 脚本，而是使生成的 configure
 脚本更易用、更可移植。

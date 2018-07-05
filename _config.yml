@@ -1,5 +1,5 @@
 # Site settings
-title: GPDB Rocks!
+title: GPDB Rocks! Now becomes greenplum.cn!
 description: > # this means to ignore newlines until "baseurl:"
   Everything about GPDB
 baseurl: "" # the subpath of your site, e.g. /blog/
