@@ -1,0 +1,99 @@
+---
+layout: post
+title:  "新一代Greenplum监控管理平台"
+author: GPCC Team
+date:   2018-07-17 13:44 +0800
+categories: tools
+published: true
+---
+
+
+Pivotal Greenplum Command Center (GPCC) V4已经正式发布，用户可以从[Pivotal Network for Enterprise Greenplum](https://network.pivotal.io/products/pivotal-gpdb) 下载 (支持Greenplum 5.7 以上版本) 。
+
+新版的GPCC不仅能够实时显示出当前Greenplum上所有正在执行的查询，同时还提供了查询性能分析和历史查询分析的功能，将极大的方便用户定位问题。同时GPCC还提供了工作负载管理的功能，包括混合负载管理，系统资源管理以及SLAs的支持。
+
+## 实时查询
+GPCC的实时查询列表能够显示出Greenplum当前正在执行的查询，当用户向Greenplum提交一个查询，就能立即在GPCC的查询列表中看到该查询，同时查询的状态也是实时更新的。相比较GPCC的历史版本，新的版本可以让用户无任何延迟的看到Query的状态变化更新。
+
+![]({{ site.url }}/assets/images/gpcc1.gif)
+
+   *图1 查询列表显示的长查询和小查询混合负载*
+      
+## 锁与被锁的关系
+你是否经常会遇到一个查询运行了很久，但是却很难找到原因，不知道是否被锁住以及谁锁住了它？GPCC V4将提供查询的详细锁信息，包括每个查询持有的锁以及等待的锁信息。
+
+在查询列表中，可以看到查询的执行状态，比如一个查询的执行状态显示的是blocked，我们可以在Blocked By列中查看到该查询有多少个Blockers，被哪个锁Block，当前锁的mode，以及这些锁是在被哪些查询所持有。在详细页面中，我们还可以看到查询持有的锁和等待的锁的时间以及更多详细的锁的信息。当用户想要troubleshooting，可以方便的为用户展示不同的查询之间锁与被锁的关系。
+
+比如在图2中，我们可以看到Query ID为1522975413-10568的查询持有Access Exclusive的锁了29s, 并阻塞了多个其他查询。用户通过GPCC，就能够很直观的看到全部运行中的查询间互锁关系。
+
+![]({{ site.url }}/assets/images/gpcc2.gif)
+
+*图2 一个查询阻塞了多个查询*
+
+每个查询持有的锁以及等待的锁信息都可以在查询的详细页面中看到，如下图所示
+
+![]({{ site.url }}/assets/images/gpcc3.png)
+
+*图3 Blocking(#) 显示的是被当前查询所阻塞的所有查询列表, Blocked(#) 显示的是阻塞当前查询的所有查询列表*
+
+##  查询的性能分析
+
+GPCC还提供了进一步的查询性能分析功能，在详细信息页面可以浏览到每个查询占用的系统资源，如CPU、Memory、CPU Skew、Spill Files、Disk Read/Write等性能指标，用户可以方便的掌握每个查询使用集群资源的占比以及倾斜程度。
+
+![]({{ site.url }}/assets/images/gpcc4.gif)
+
+*图4 查询性能分析*
+
+![]({{ site.url }}/assets/images/gpcc5.png)
+
+*图5 性能指标*
+
+CPU是该查询在所有的segment上运行的进程消耗CPU的平均值，Memory是执行查询在所有的segment上运行的进程消耗的内存总量， 当CPU或者Memory出现过高的利用率时，通常表明查询性能存在问题。
+
+CPU Skew 通常发生在某个查询在一个segment上CPU使用量要远远高于其他的segment。CPU 倾斜(Skew) 通常表明的是数据库更深层次的问题，如数据分布不平衡或者硬件的损坏等问题。需要注意的是CPU skew是在查询执行过程定期采样的结果，所以如果只是某次的CPU Skew很高不一定代表有问题，但是如果该数值在整个查询的执行过程中持续很高就需要注意了。
+
+## Spill 文件数
+
+定位有问题查询的一种有效的方法就是看该查询是否会溢出大量数据到磁盘，在GPCC的查询列表可以看到每个查询的Spill Files总量，Spill File过高暗示着内存管理可能存在问题。除此之外，查询溢出大量数据到磁盘可能会耗尽磁盘资源并导致数据库崩溃。
+
+![]({{ site.url }}/assets/images/gpcc6.gif)
+
+*图6 Spill 文件数*
+
+## 图形化查询计划树
+
+GPCC4.2加入了图形化的查询计划树的功能，用户可以看到每个节点执行的进度，以及数据的吞吐量 (Actual Rows, Estimated Rows)、CPU占比及累计的CPU用时等性能指标。GPCC中的查询计划树相比较传统的Explain更精确，对用户更有价值，因为它的信息来自于Greenplum运行中的所有查询进程，所有展示的状态和指标都是实时发生，用户甚至可以预测正在执行的查询还需要多少时间能完成。
+
+![]({{ site.url }}/assets/images/gpcc7.gif)
+
+*图7 查询计划树*
+
+## 工作负载(workload)管理
+
+GPCC的工作负载是基于Greenplum 5 的资源组 (Resource Group) 实现的企业级资源管理解决方案。Resource Group代替了之前的Resource Queue，管理员可以灵活配置不同用户的查询的资源分配，包括CPU、内存和并发数。
+	
+一旦Workload被启用，用户的查询可以被分配到基于角色的不同资源组。GPCC的workload可以通过QueryTag将用户的查询分配到不同的资源组，从而进行资源配置方案的调优，如图7所示。除此之外，用户还可以设置idle session timeout，这样当闲置的会话超过设置的timeout的时间，GPCC就会自动清理掉闲置的会话。
+
+通过GPCC的工作负载的管理，用户可以通过简单明了的配置页面，方便的调整Resource Group的资源配比。
+
+![]({{ site.url }}/assets/images/gpcc8.png)
+
+*图8 查询分配到不同的资源组*
+
+如果想要了解更多的WLM的新功能，请参考以下文档，[GPCC Workload Management documentaion.](http://gpcc.docs.pivotal.io/200/docs-gpwlm/topics/welcome.html)
+
+作为一个智能监控和管理的工具，新的GPCC致力于成为Greenplum的驾驶舱，为用户保驾护航。敬请关注GPCC未来版本中更多有吸引力的功能。
+	
+想要了解更多信息，可参阅 [Pivotal Greenplum](https://pivotal.io/pivotal-greenplum)
+
+下载 [Pivotal Greenplum and Greenplum Command Center](https://network.pivotal.io/products/pivotal-gpdb)
+
+文档 [Pivotal Greenplum Command Center Documentation](http://gpcc.docs.pivotal.io/400/welcome.html)
+
+
+
+
+
+
+
+
