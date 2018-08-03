@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "用时72天 Greenplum 开源大数据平台内核升级到 PostgreSQL 9.2"
+title:  "用时72天 Greenplum 内核升级到 PostgreSQL 9.2"
 author: Pivotal Greenplum 团队
 date:   2018-08-03 09:58 +0800
 categories: greenplum
