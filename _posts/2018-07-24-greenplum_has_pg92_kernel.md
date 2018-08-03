@@ -41,5 +41,3 @@ Greenplum 5.x 分支也在持续增强中，5.10 刚刚发布了如下新特性�
 
 如果你对分布式数据库内核感兴趣，希望成为贡献者或commiter，[可以从这儿开始！](https://github.com/greenplum-db/gpdb/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)Greenplum社区期待您的参与！
 
-<a rel="nofollow" href="http://info.flagcounter.com/h9V1"  ><img
-src="http://s03.flagcounter.com/count/h9V1/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_12/viewers_0/labels_0/pageviews_0/flags_0/" alt="Flag Counter"  border="0"  ></a>  
