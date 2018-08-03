@@ -40,3 +40,6 @@ Greenplum 5.x 分支也在持续增强中，5.10 刚刚发布了如下新特性�
 随着Greenplum的快速发展，Greenplum受到越来越多的客户、用户、厂商、合作伙伴和教育机构的青睐，成为企业和云上大数据处理、分析和机器学习的首选基础平台。感谢所有参与者，共建Greenplum大数据生态。
 
 如果你对分布式数据库内核感兴趣，希望成为贡献者或commiter，[可以从这儿开始！](https://github.com/greenplum-db/gpdb/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)Greenplum社区期待您的参与！
+
+<a rel="nofollow" href="http://info.flagcounter.com/h9V1"  ><img
+src="http://s03.flagcounter.com/count/h9V1/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_12/viewers_0/labels_0/pageviews_0/flags_0/" alt="Flag Counter"  border="0"  ></a>  
