@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "惊艳：不到三周 Greenplum 内核升级到 PostgreSQL 9.3"
-author: Pivotal Greenplum 团队
+author: Greenplum 中国研发团队
 date:   2018-09-22 06:58 +0800
 categories: greenplum
 published: true
