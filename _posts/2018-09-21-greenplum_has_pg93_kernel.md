@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "惊艳：不到三周 Greenplum 内核升级到 PostgreSQL 9.3"
+title:  "惊艳：16天 Greenplum 内核升级到 PostgreSQL 9.3"
 author: Greenplum 中国研发团队
 date:   2018-09-22 06:58 +0800
 categories: greenplum
@@ -8,7 +8,7 @@ published: true
 ---
 
 
-用时不到三周，Greenplum 开源数据平台内核成功升级到 PostgreSQL 9.3!!! 
+用时16天，Greenplum 开源数据平台内核成功升级到 PostgreSQL 9.3!!! 
 
 [9.1 70天](http://greenplum.cn/tools/2018/07/12/postgresql-upgrade-from-9.0-to-9.1.html)，[9.2 用时约72天](http://greenplum.cn/greenplum/2018/08/03/greenplum_has_pg92_kernel.html)，9.3 16天!!! 有关合并细节，请参加[PR #5805](https://github.com/greenplum-db/gpdb/pull/5805)
 
