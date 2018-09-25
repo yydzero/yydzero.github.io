@@ -8,7 +8,11 @@ published: true
 ---
 
 
-用时不到三周，Greenplum 开源数据平台内核成功升级到 PostgreSQL 9.3!!! 9.2 合并结束后，从8/3到9/4，团队经过了约1个月的修整和各种清理工作，主要是8.4-9.2合并期间遗留的主要 FIXME，为此次9.3顺利升级打下了基础。
+用时不到三周，Greenplum 开源数据平台内核成功升级到 PostgreSQL 9.3!!! 
+
+[9.1 70天](http://greenplum.cn/tools/2018/07/12/postgresql-upgrade-from-9.0-to-9.1.html)，[9.2 用时约72天](http://greenplum.cn/greenplum/2018/08/03/greenplum_has_pg92_kernel.html)，9.3 16天!!! 有关合并细节，请参加[PR #5805](https://github.com/greenplum-db/gpdb/pull/5805)
+
+9.2 合并结束后，从8/3到9/4，团队经过了约1个月的修整和各种清理工作，主要是处理 8.4-9.2合并期间遗留的主要 FIXME，为此次9.3顺利升级打下了基础。
 
 ```
 psql (9.3beta1)
@@ -21,7 +25,6 @@ PostgreSQL 9.3beta1 (Greenplum Database 6.0.0-alpha.0+dev.11158.gc7649f182f buil
 (1 row)
 ```
 
-[9.1 70天](http://greenplum.cn/tools/2018/07/12/postgresql-upgrade-from-9.0-to-9.1.html)，[9.2 用时约72天](http://greenplum.cn/greenplum/2018/08/03/greenplum_has_pg92_kernel.html)，9.3 16天!!! 有关合并细节，请参加[PR #5805](https://github.com/greenplum-db/gpdb/pull/5805)
 
 此次内核升级获得大量9.3新特性。譬如 Lateral 支持（有些情况下还不完善）：
 
