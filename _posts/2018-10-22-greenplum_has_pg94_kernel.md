@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "用时 3 周 Greenplum 内核升级到 PostgreSQL 9.4"
-author: Greenplum 中国研发团队
+author: Greenplum 中国研发中心
 date:   2018-10-22 10:58 +0800
 categories: greenplum postgresql 内核 MPP
 published: true
@@ -16,14 +16,14 @@ published: true
 
 9.4 有如下主要特性和改进：
 
-* JOSNB
-* WAL 日志刷新性能优化
-* 表修改锁优化
-* 物化视图刷新优化
-* 逻辑解码
-* background 进程动态注册
-* Catalog MVCC 支持
-* Replication Slot
+* JOSNB: 通过 JOSNB，在SQL数据库中也可以畅享 document store 带来的灵活性，应用中可以同时使用关系模型和文档模型，并且可以在两者之间join。
+* 多核并行优化：大幅提升短查询高并发下的性能
+* 表修改锁优化：大大降低了事务等待的时间
+* 逻辑解码：为 CDC、DR 等方案奠定了基础
+* Replication Slot：大大提高了基于流复制高可用性方案的可用性
+* Catalog MVCC 支持：提高了元数据处理的并行度和一致性
+* 物化视图刷新优化：目前还不支持 MPP
+* background 进程动态注册：灵活启停后台进程
 
 
 感谢 PostgreSQL 社区！
