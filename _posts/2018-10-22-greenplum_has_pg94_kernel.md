@@ -1,0 +1,40 @@
+---
+layout: post
+title:  "用时 3 周 Greenplum 内核升级到 PostgreSQL 9.4"
+author: Greenplum 中国研发团队
+date:   2018-10-22 10:58 +0800
+categories: greenplum postgresql 内核 MPP
+published: true
+---
+
+
+用时3周，Greenplum 开源数据平台内核成功升级到 PostgreSQL 9.4!!! 
+
+[9.1 70天](http://greenplum.cn/tools/2018/07/12/postgresql-upgrade-from-9.0-to-9.1.html)，[9.2 用时约72天](http://greenplum.cn/greenplum/2018/08/03/greenplum_has_pg92_kernel.html)，[9.3 用时16天](http://greenplum.cn/greenplum/2018/09/21/greenplum_has_pg93_kernel.html) 
+
+继9.3以创纪录的速度完成合并后，Greenplum内核团队又顺利的完成了 PostgreSQL 9.4 的升级, 有关这次升级的细节请[看这里](https://github.com/greenplum-db/gpdb/commit/1617960e8ab077988c26bc8d59c5cfbfa608a3fb) 
+
+9.4 有如下主要特性和改进：
+
+* JOSNB
+* WAL 日志刷新性能优化
+* 表修改锁优化
+* 物化视图刷新优化
+* 逻辑解码
+* background 进程动态注册
+* Catalog MVCC 支持
+* Replication Slot
+
+
+感谢 PostgreSQL 社区！
+
+## 关于 Greenplum
+
+Greenplum 是全球领先的开源大数据平台，是能够提供包含实时处理、弹性扩容、弹性计算、混合负载、云原生和集成数据分析等强大功能的大数据引擎。
+
+Greenplum 基于MPP（大规模并行处理）架构构建，具有良好的弹性和线性扩展能力，并内置并行存储、并行通讯、并行计算和优化技术。同时，Greenplum还兼容 SQL 标准，具备强大、高效、安全的PB级结构化、半结构化和非结构化数据存储、处理和实时分析能力，可部署于企业裸机、容器、私有云和公有云中。值得一提的是，作为OLAP型的大数据平台, Greenplum同时还能够支持涵盖OLTP型业务的混合负载，从而帮助客户真正打通业务-数据-洞见-业务的闭环。
+
+ 目前，Greenplum 已经为国内外各行各业客户所广泛使用,支撑着全球各大行业的核心生产系统，其涉及领域涵盖金融、保险、证券、通信、航空、物流、零售、媒体、政府、医疗、制造、能源等。
+
+如果你对分布式数据库内核感兴趣，希望成为贡献者或commiter，[可以从这儿开始！](https://github.com/greenplum-db/gpdb/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)Greenplum社区期待您的参与！
+
