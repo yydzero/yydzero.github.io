@@ -22,8 +22,13 @@ published: true
 * 逻辑解码：为 CDC、DR 等方案奠定了基础
 * Replication Slot：大大提高了基于流复制高可用性方案的可用性
 * Catalog MVCC 支持：提高了元数据处理的并行度和一致性
+* 聚集中使用 filter 子句。例如： SELECT id, count(id), count(id) FILTER (where id < 5) FROM tbl GROUP BY id;
+* 支持 WITHIN GROUP， unnest 和 WITH ORDINALITY 等增强
+* GIN 索引性能和压缩大幅增强
 * 物化视图刷新优化：目前还不支持 MPP
 * background 进程动态注册：灵活启停后台进程
+* pg_stat_statements 视图
+* pl/pgsql 支持 stacktrace
 
 
 感谢 PostgreSQL 社区！
